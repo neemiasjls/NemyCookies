@@ -1,0 +1,15 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: nemycookies-db
+    environment:
+      MYSQL_DATABASE: nemycookies
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - nemycookies_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  nemycookies_data:
