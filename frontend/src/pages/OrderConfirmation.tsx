@@ -1,10 +1,10 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle2, Clock, Bell, Cookie } from 'lucide-react'
+import { CheckCircle2, Bell, Cookie, Store } from 'lucide-react'
 
 const STEPS = [
-  { Icon: Clock, text: 'Aguarde a confirmação do preparo' },
-  { Icon: Bell, text: 'Você será avisado quando estiver pronto' },
-  { Icon: Cookie, text: 'Retire seu cookie quentinho' },
+  { Icon: Cookie, text: 'Seus cookies serão assados na hora' },
+  { Icon: Bell, text: 'Você será avisado quando estiverem prontos' },
+  { Icon: Store, text: 'Combinamos a entrega ou a retirada' },
 ]
 
 export default function OrderConfirmation() {

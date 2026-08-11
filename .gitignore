@@ -1,18 +1,13 @@
 # Segredos — NUNCA subir para o GitHub
-backend/src/main/resources/application.yml
-backend/src/main/resources/application-local.yml
-# .env em qualquer lugar (mas mantém os .env.example)
 .env
 frontend/.env
-
-# Maven
-backend/target/
 
 # Node
 frontend/node_modules/
 frontend/dist/
 
 # Logs
+logs/
 *.log
 
 # IDEs
