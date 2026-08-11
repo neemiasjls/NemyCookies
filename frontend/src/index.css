@@ -17,6 +17,17 @@
   }
 }
 
+/* Remove as setinhas de incremento do input numerico */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 body {
   background-color: #FFF8F0;
   margin: 0;

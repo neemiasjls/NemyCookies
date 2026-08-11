@@ -258,6 +258,9 @@ export default function Checkout() {
               <span className="text-cookie-dark">Total</span>
               <span className="text-cookie-brown text-lg">R$ {grandTotal.toFixed(2).replace('.', ',')}</span>
             </div>
+            <p className="flex items-center gap-1.5 text-xs text-gray-500 pt-1">
+              <Cookie size={12} className="flex-shrink-0" /> Assados na hora, feitos sob encomenda
+            </p>
           </div>
         </div>
 
@@ -270,7 +273,7 @@ export default function Checkout() {
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Como você quer receber?</label>
               <div className="grid grid-cols-2 gap-2">
                 {([
-                  { v: 'PICKUP' as DeliveryMethod, Icon: Store, label: 'Retirada', sub: 'Grátis · no local' },
+                  { v: 'PICKUP' as DeliveryMethod, Icon: Store, label: 'Retirada', sub: 'Grátis · horário a combinar' },
                   { v: 'DELIVERY' as DeliveryMethod, Icon: Truck, label: 'Entrega', sub: 'R$ 4 · grátis acima de R$ 50' },
                 ]).map(({ v, Icon, label, sub }) => {
                   const active = delivery === v

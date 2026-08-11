@@ -11,6 +11,7 @@ export interface Product {
   description: string
   price: number
   imageUrl?: string
+  weight?: string
   available: boolean
   stock: number
   category: Category
@@ -46,8 +47,60 @@ export interface OrderResponse {
   address?: string
   deliveryMethod?: 'PICKUP' | 'DELIVERY'
   deliveryFee?: number
+  /** 'site' = veio do site · 'manual' = anotado no painel */
+  source?: 'site' | 'manual'
   createdAt: string
   items: OrderItemResponse[]
+}
+
+/** Quantos cookies de cada sabor precisam ser feitos */
+export interface ProductionSummary {
+  porSabor: { productId: number; productName: string; quantidade: number }[]
+  totalCookies: number
+  totalPedidos: number
+}
+
+/** Caderneta: venda presencial com pagamento posterior */
+export interface TabSaleItem {
+  productId: number
+  productName: string
+  quantity: number
+  unitPrice: number
+  subtotal: number
+}
+
+export interface TabSale {
+  id: number
+  customerId: number
+  customerName: string
+  soldAt: string
+  total: number
+  paid: boolean
+  paidAt?: string
+  /** ja lancado na planilha pessoal */
+  annotated: boolean
+  annotatedAt?: string
+  notes?: string
+  items: TabSaleItem[]
+}
+
+export interface TabSummaryRow {
+  customerId: number
+  customerName: string
+  devendo: number
+  vendasAbertas: number
+  totalGeral: number
+  ultimaCompra: string
+}
+
+/** Pessoa cadastrada na caderneta */
+export interface TabCustomer {
+  id: number
+  name: string
+  phone?: string
+  devendo: number
+  vendasAbertas: number
+  ultimaCompra?: string
 }
 
 export interface PixPaymentCreatedResponse {
