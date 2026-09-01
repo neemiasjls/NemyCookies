@@ -57,28 +57,28 @@ export default function PixPayment() {
   if (!pixData) return null
 
   if (status === 'approved') return (
-    <div className="min-h-screen bg-cookie-cream flex flex-col items-center justify-center gap-4">
-      <CheckCircle2 size={72} className="text-green-600 animate-bounce" strokeWidth={1.5} />
-      <h1 className="font-display text-2xl font-bold text-green-700">Pagamento confirmado!</h1>
-      <p className="text-gray-500">Redirecionando...</p>
+    <div className="min-h-screen bg-canvas flex flex-col items-center justify-center gap-4">
+      <CheckCircle2 size={72} className="text-success animate-confirma" strokeWidth={1.5} />
+      <h1 className="font-display text-2xl font-bold text-success">Pagamento confirmado!</h1>
+      <p className="text-ink-2">Redirecionando...</p>
     </div>
   )
 
   if (status === 'rejected') return (
-    <div className="min-h-screen bg-cookie-cream flex flex-col items-center justify-center gap-4 px-4">
-      <XCircle size={72} className="text-red-500" strokeWidth={1.5} />
-      <h1 className="font-display text-xl font-bold text-red-600">Pagamento não realizado</h1>
-      <button onClick={() => navigate('/')} className="bg-cookie-brown text-white px-8 py-3 rounded-full font-semibold text-base">
+    <div className="min-h-screen bg-canvas flex flex-col items-center justify-center gap-4 px-4">
+      <XCircle size={72} className="text-danger" strokeWidth={1.5} />
+      <h1 className="font-display text-xl font-bold text-danger">Pagamento não realizado</h1>
+      <button onClick={() => navigate('/')} className="bg-brand text-brand-ink px-8 py-3 rounded-full font-semibold text-base">
         Voltar ao cardápio
       </button>
     </div>
   )
 
   return (
-    <div className="min-h-screen bg-cookie-cream pb-6">
-      <div className="bg-cookie-dark text-white py-3.5 px-4">
+    <div className="min-h-screen bg-canvas pb-6">
+      <div className="bg-shell text-white py-3.5 px-4">
         <div className="max-w-lg mx-auto flex items-center gap-3">
-          <button onClick={() => navigate('/checkout')} className="text-orange-300 hover:text-white p-1 transition-colors" aria-label="Voltar">
+          <button onClick={() => navigate('/checkout')} className="text-shell-2 hover:text-white p-1 transition-colors" aria-label="Voltar">
             <ArrowLeft size={20} />
           </button>
           <h1 className="font-display font-bold text-lg">Pagamento via Pix</h1>
@@ -95,35 +95,35 @@ export default function PixPayment() {
 
       <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
         {/* Timer */}
-        <div className="bg-white rounded-2xl border border-orange-100 p-4 text-center">
-          <p className="text-sm text-gray-500 mb-1">QR Code expira em</p>
-          <p className={`text-4xl font-bold tabular-nums ${secondsLeft < 120 ? 'text-red-500' : 'text-cookie-brown'}`}>
+        <div className="bg-surface rounded-2xl border border-brand-line p-4 text-center">
+          <p className="text-sm text-ink-2 mb-1">QR Code expira em</p>
+          <p className={`text-4xl font-bold tabular-nums ${secondsLeft < 120 ? 'text-danger' : 'text-brand'}`}>
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </p>
         </div>
 
         {/* QR Code */}
-        <div className="bg-white rounded-2xl border border-orange-100 p-5 flex flex-col items-center gap-4">
-          <p className="font-semibold text-cookie-dark text-center">Escaneie com o app do seu banco</p>
+        <div className="bg-surface rounded-2xl border border-brand-line p-5 flex flex-col items-center gap-4">
+          <p className="font-semibold text-ink text-center">Escaneie com o app do seu banco</p>
 
           {pixData.qrCodeBase64 ? (
             <img src={`data:image/png;base64,${pixData.qrCodeBase64}`} alt="QR Code PIX"
               className="w-56 h-56 rounded-xl" />
           ) : (
-            <div className="w-56 h-56 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 text-sm">
+            <div className="w-56 h-56 bg-surface-2 rounded-xl flex items-center justify-center text-ink-3 text-sm">
               QR Code indisponível
             </div>
           )}
 
           <div className="w-full">
-            <p className="text-xs text-gray-500 mb-2 text-center font-medium">Pix Copia e Cola:</p>
-            <div className="bg-orange-50 rounded-xl p-3 flex items-center gap-2">
-              <p className="text-xs font-mono text-gray-600 flex-1 break-all line-clamp-2 leading-relaxed">
+            <p className="text-xs text-ink-2 mb-2 text-center font-medium">Pix Copia e Cola:</p>
+            <div className="bg-brand-soft rounded-xl p-3 flex items-center gap-2">
+              <p className="text-xs font-mono text-ink-2 flex-1 break-all line-clamp-2 leading-relaxed">
                 {pixData.copyPasteCode}
               </p>
               <button onClick={handleCopy}
                 className={`flex-shrink-0 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors min-w-[80px] flex items-center justify-center gap-1.5 ${
-                  copied ? 'bg-green-100 text-green-700' : 'bg-cookie-brown text-white active:bg-cookie-dark'
+                  copied ? 'bg-success-bg text-success' : 'bg-brand text-brand-ink active:bg-brand-strong'
                 }`}>
                 {copied ? <><Check size={14} strokeWidth={3} /> Copiado</> : <><Copy size={14} /> Copiar</>}
               </button>
@@ -132,23 +132,23 @@ export default function PixPayment() {
         </div>
 
         {/* Valor */}
-        <div className="bg-white rounded-2xl border border-orange-100 p-4 flex justify-between items-center">
-          <span className="text-gray-600 font-medium">Valor a pagar</span>
-          <span className="text-2xl font-bold text-cookie-brown">
+        <div className="bg-surface rounded-2xl border border-brand-line p-4 flex justify-between items-center">
+          <span className="text-ink-2 font-medium">Valor a pagar</span>
+          <span className="text-2xl font-bold text-brand">
             R$ {pixData.totalAmount.toFixed(2).replace('.', ',')}
           </span>
         </div>
 
         {/* Status */}
-        <div className="bg-blue-50 rounded-2xl border border-blue-100 p-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-blue-600 mb-1">
-            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" />
+        <div className="bg-info-bg rounded-2xl border border-info-line p-4 text-center">
+          <div className="flex items-center justify-center gap-2 text-info mb-1">
+            <div className="w-2.5 h-2.5 bg-info-solid rounded-full animate-pulse" />
             <span className="text-sm font-semibold">Aguardando pagamento...</span>
           </div>
-          <p className="text-xs text-blue-400">Esta página atualiza automaticamente</p>
+          <p className="text-xs text-info">Esta página atualiza automaticamente</p>
         </div>
 
-        <p className="text-center text-xs text-gray-400">Pedido #{pixData.orderId}</p>
+        <p className="text-center text-xs text-ink-3">Pedido #{pixData.orderId}</p>
       </div>
     </div>
   )

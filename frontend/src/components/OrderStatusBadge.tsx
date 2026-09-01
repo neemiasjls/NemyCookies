@@ -1,11 +1,11 @@
 import { OrderStatus } from '../types'
 
 const CONFIG: Record<OrderStatus, { label: string; color: string }> = {
-  PENDING:   { label: 'Pendente',    color: 'bg-yellow-100 text-yellow-800' },
-  PREPARING: { label: 'Preparando',  color: 'bg-blue-100 text-blue-800' },
-  READY:     { label: 'Pronto',      color: 'bg-green-100 text-green-800' },
-  DELIVERED: { label: 'Entregue',    color: 'bg-gray-100 text-gray-600' },
-  CANCELLED: { label: 'Cancelado',   color: 'bg-red-100 text-red-700' },
+  PENDING:   { label: 'Pendente',    color: 'bg-warn-bg text-warn' },
+  PREPARING: { label: 'Preparando',  color: 'bg-info-bg text-info' },
+  READY:     { label: 'Pronto',      color: 'bg-success-bg text-success' },
+  DELIVERED: { label: 'Entregue',    color: 'bg-surface-2 text-ink-2' },
+  CANCELLED: { label: 'Cancelado',   color: 'bg-danger-bg text-danger' },
 }
 
 export default function OrderStatusBadge({ status }: { status: OrderStatus }) {
