@@ -1,6 +1,7 @@
 import {
   OrderResponse, OrderStatus, Product, Category,
   PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, ProductionSummary,
+  AuditEntry,
 } from '../types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -198,6 +199,7 @@ const toTabSale = (s: any): TabSale => ({
   total: Number(s.total),
   paid: s.paid,
   paidAt: s.paid_at ?? undefined,
+  paidAmount: Number(s.paid_amount ?? 0),
   annotated: !!s.annotated,
   annotatedAt: s.annotated_at ?? undefined,
   notes: s.notes ?? undefined,
@@ -219,32 +221,48 @@ export const getTabSales = (status: TabStatus = 'open'): Promise<TabSale[]> =>
     .then((rows) => rows.map(toTabSale))
 
 export const getTabSummary = (): Promise<TabSummaryRow[]> =>
-  requestAdmin<{ customer_id: number; customer_name: string; devendo: string; vendas_abertas: number; total_geral: string; ultima_compra: string }[]>(
+  requestAdmin<{ customer_id: number; customer_name: string; nickname: string | null; phone: string | null; devendo: string; vendas_abertas: number; total_geral: string; ultima_compra: string; message: string | null }[]>(
     `${FN}/admin/tab/summary`,
   ).then((rows) => rows.map((r) => ({
     customerId: r.customer_id,
     customerName: r.customer_name,
+    nickname: r.nickname ?? undefined,
+    phone: r.phone ?? undefined,
     devendo: Number(r.devendo),
     vendasAbertas: r.vendas_abertas,
     totalGeral: Number(r.total_geral),
     ultimaCompra: r.ultima_compra,
+    message: r.message ?? '',
   })))
 
 // ── Pessoas da caderneta ──
 export const getTabCustomers = (): Promise<TabCustomer[]> =>
-  requestAdmin<{ id: number; name: string; phone: string | null; devendo: string; vendas_abertas: number; ultima_compra: string | null }[]>(
+  requestAdmin<{ id: number; name: string; nickname: string | null; phone: string | null; devendo: string; vendas_abertas: number; ultima_compra: string | null }[]>(
     `${FN}/admin/tab/customers`,
   ).then((rows) => rows.map((r) => ({
     id: r.id,
     name: r.name,
+    nickname: r.nickname ?? undefined,
     phone: r.phone ?? undefined,
     devendo: Number(r.devendo),
     vendasAbertas: r.vendas_abertas,
     ultimaCompra: r.ultima_compra ?? undefined,
   })))
 
-export const createTabCustomer = (name: string, phone?: string): Promise<{ id: number; name: string }> =>
-  requestAdmin(`${FN}/admin/tab/customers`, { method: 'POST', body: JSON.stringify({ name, phone }) })
+export const createTabCustomer = (name: string, nickname?: string, phone?: string): Promise<{ id: number; name: string }> =>
+  requestAdmin(`${FN}/admin/tab/customers`, { method: 'POST', body: JSON.stringify({ name, nickname, phone }) })
+
+/** Apelido usado so na mensagem de cobranca. Manda vazio para tirar. */
+export const setTabCustomerNickname = (id: number, nickname: string): Promise<{ id: number; name: string }> =>
+  requestAdmin(`${FN}/admin/tab/customers/${id}`, { method: 'PATCH', body: JSON.stringify({ nickname }) })
+
+/** Telefone do WhatsApp. Manda vazio para tirar. */
+export const setTabCustomerPhone = (id: number, phone: string): Promise<{ id: number; name: string }> =>
+  requestAdmin(`${FN}/admin/tab/customers/${id}`, { method: 'PATCH', body: JSON.stringify({ phone }) })
+
+/** Anota no historico que a cobranca foi mandada. */
+export const markCharged = (customerId: number): Promise<{ ok: boolean }> =>
+  requestAdmin(`${FN}/admin/tab/customers/${customerId}/charged`, { method: 'POST' })
 
 export const renameTabCustomer = (id: number, name: string): Promise<{ id: number; name: string }> =>
   requestAdmin(`${FN}/admin/tab/customers/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) })
@@ -268,10 +286,41 @@ export const setTabSalePaid = (id: number, paid: boolean): Promise<TabSale> =>
   requestAdmin(`${FN}/admin/tab/${id}/paid`, { method: 'PATCH', body: JSON.stringify({ paid }) })
     .then(toTabSale)
 
+/** Abate uma parte do valor: a pessoa pagou so um pedaco agora. */
+export const addTabPayment = (id: number, amount: number): Promise<TabSale> =>
+  requestAdmin(`${FN}/admin/tab/${id}/payment`, { method: 'PATCH', body: JSON.stringify({ amount }) })
+    .then(toTabSale)
+
 /** Marca que a venda ja foi lancada na planilha pessoal */
 export const setTabSaleAnnotated = (id: number, annotated: boolean): Promise<TabSale> =>
   requestAdmin(`${FN}/admin/tab/${id}/annotated`, { method: 'PATCH', body: JSON.stringify({ annotated }) })
     .then(toTabSale)
+
+/** Marca de uma vez todas as vendas pagas que ainda nao foram anotadas */
+export const annotateAllTabSales = (): Promise<{ anotadas: number }> =>
+  requestAdmin(`${FN}/admin/tab/annotate-all`, { method: 'POST' })
+
+// ── Historico (auditoria) ─────────────────────────────
+export const getHistory = (opts: { entity?: string; actor?: string; limit?: number } = {}): Promise<AuditEntry[]> => {
+  const p = new URLSearchParams()
+  if (opts.entity) p.set('entity', opts.entity)
+  if (opts.actor) p.set('actor', opts.actor)
+  p.set('limit', String(opts.limit ?? 150))
+  return requestAdmin<{ id: number; actor: string; action: string; description: string; entity: string | null; entity_id: number | null; created_at: string }[]>(
+    `${FN}/admin/history?${p}`,
+  ).then((rows) => rows.map((r) => ({
+    id: r.id,
+    actor: r.actor,
+    action: r.action,
+    description: r.description,
+    entity: r.entity ?? undefined,
+    entityId: r.entity_id ?? undefined,
+    createdAt: r.created_at,
+  })))
+}
+
+export const getHistoryActors = (): Promise<string[]> =>
+  requestAdmin<string[]>(`${FN}/admin/history/actors`)
 
 export const deleteTabSale = (id: number): Promise<{ message: string }> =>
   requestAdmin(`${FN}/admin/tab/${id}`, { method: 'DELETE' })
