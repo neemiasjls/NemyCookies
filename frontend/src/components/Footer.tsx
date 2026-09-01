@@ -16,7 +16,7 @@ function InstagramIcon({ size = 16 }: { size?: number }) {
 
 export default function Footer() {
   return (
-    <footer className="bg-cookie-dark text-white mt-10">
+    <footer className="bg-shell text-white mt-10">
       <div className="max-w-6xl mx-auto px-4 py-9">
         <div className="flex flex-col items-center text-center gap-3">
           <div className="flex items-center gap-2.5">
@@ -38,7 +38,7 @@ export default function Footer() {
               className="flex items-center gap-2 rounded-full px-4 py-2 bg-white/[0.07]
                          border border-cookie-gold/25 hover:bg-white/[0.14] transition-colors"
             >
-              <span className="text-cookie-gold flex items-center"><InstagramIcon /></span>
+              <span className="text-gold flex items-center"><InstagramIcon /></span>
               <span className="text-sm font-semibold text-orange-50/90">@nemycookies</span>
             </a>
             <a
@@ -49,7 +49,7 @@ export default function Footer() {
               className="flex items-center gap-2 rounded-full px-4 py-2 bg-white/[0.07]
                          border border-cookie-gold/25 hover:bg-white/[0.14] transition-colors"
             >
-              <span className="text-cookie-gold flex items-center"><WhatsAppIcon /></span>
+              <span className="text-gold flex items-center"><WhatsAppIcon /></span>
               <span className="text-sm font-semibold text-orange-50/90">WhatsApp</span>
             </a>
           </div>

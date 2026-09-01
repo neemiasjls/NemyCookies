@@ -2,11 +2,141 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Cursor de "clique" em elementos interativos.
-   O navegador deixa <button> com cursor de seta por padrao — forcamos o pointer. */
+/* ==========================================================================
+   Tema. Uma variavel por papel, nao por cor: trocar :root e [data-theme]
+   troca o site inteiro sem mexer em nenhuma classe.
+   Valores em "R G B" para o Tailwind poder aplicar opacidade.
+   ========================================================================== */
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --canvas: 253 247 240;
+  --surface: 255 255 255;
+  --surface-2: 250 243 235;
+  --line: 235 226 216;
+  --line-soft: 244 238 231;
+
+  --ink: 44 26 14;
+  --ink-2: 107 92 81;
+  --ink-3: 122 107 96;
+  --ink-4: 154 140 129;
+
+  --brand: 123 63 0;
+  --brand-strong: 44 26 14;
+  --brand-soft: 255 243 231;
+  --brand-line: 244 224 202;
+  --brand-ink: 255 255 255;
+  --gold: 190 122 12;
+
+  --shell: 44 26 14;
+  --shell-ink: 255 245 234;
+  --shell-ink-2: 214 178 140;
+  --shell-line: 74 48 28;
+
+  --success: 20 106 62;
+  --success-bg: 233 248 239;
+  --success-line: 198 233 213;
+  --success-solid: 21 128 76;
+
+  --warn: 146 84 6;
+  --warn-bg: 255 246 226;
+  --warn-line: 247 226 178;
+  --warn-solid: 202 138 4;
+
+  --danger: 178 43 43;
+  --danger-bg: 253 238 238;
+  --danger-line: 246 208 208;
+  --danger-solid: 200 50 50;
+
+  --info: 29 84 150;
+  --info-bg: 234 243 253;
+  --info-line: 202 224 246;
+  --info-solid: 37 99 175;
+
+  --accent: 106 60 152;
+  --accent-bg: 246 240 253;
+  --accent-line: 226 211 246;
+
+  --shadow: 66 40 20;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --canvas: 24 18 14;
+  --surface: 36 27 22;
+  --surface-2: 47 36 29;
+  --line: 62 48 39;
+  --line-soft: 52 40 33;
+
+  --ink: 247 240 232;
+  --ink-2: 197 182 169;
+  --ink-3: 165 149 136;
+  --ink-4: 124 110 100;
+
+  --brand: 226 152 82;
+  --brand-strong: 243 183 124;
+  --brand-soft: 56 38 24;
+  --brand-line: 88 60 36;
+  --brand-ink: 32 21 13;
+  --gold: 236 176 74;
+
+  --shell: 18 13 10;
+  --shell-ink: 250 240 229;
+  --shell-ink-2: 199 165 130;
+  --shell-line: 56 41 30;
+
+  --success: 116 214 156;
+  --success-bg: 25 50 37;
+  --success-line: 44 84 62;
+  --success-solid: 34 150 95;
+
+  --warn: 238 188 96;
+  --warn-bg: 54 42 21;
+  --warn-line: 90 68 31;
+  --warn-solid: 176 120 10;
+
+  --danger: 246 148 148;
+  --danger-bg: 57 31 31;
+  --danger-line: 94 49 49;
+  --danger-solid: 186 58 58;
+
+  --info: 141 189 246;
+  --info-bg: 26 41 60;
+  --info-line: 45 69 99;
+  --info-solid: 44 104 180;
+
+  --accent: 199 168 244;
+  --accent-bg: 45 35 62;
+  --accent-line: 73 57 99;
+
+  --shadow: 0 0 0;
+}
+
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    background-color: rgb(var(--canvas));
+    color: rgb(var(--ink));
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Cursor de "clique" nos elementos interativos.
+     O navegador deixa <button> com seta por padrao - forcamos o pointer. */
   button:not(:disabled),
-  [role="button"]:not(:disabled),
+  [role='button']:not(:disabled),
   label[for],
   summary,
   select {
@@ -15,6 +145,45 @@
   button:disabled {
     cursor: not-allowed;
   }
+
+  /* Foco visivel e consistente no teclado, sem poluir o clique do mouse. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: rgb(var(--brand) / 0.22);
+  }
+
+  /* Sem isto os campos herdam o cinza padrao do navegador e destoam da paleta.
+     Utilitarios como bg-surface continuam vencendo onde forem aplicados. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    background-color: rgb(var(--surface-2));
+    color: rgb(var(--ink));
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgb(var(--ink-3));
+    opacity: 1;
+  }
+
+  /* O calendario e o relogio dos inputs somem no tema escuro sem isto. */
+  [data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.85);
+  }
+}
+
+/* Enquanto o tema troca, nada anima: evita cores presas no tema antigo. */
+.trocando-tema,
+.trocando-tema *,
+.trocando-tema *::before,
+.trocando-tema *::after {
+  transition: none !important;
 }
 
 /* Remove as setinhas de incremento do input numerico */
@@ -28,24 +197,30 @@
   appearance: textfield;
 }
 
-body {
-  background-color: #FFF8F0;
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-* {
-  box-sizing: border-box;
-}
-
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #A0522D;
-  border-radius: 3px;
+  background: rgb(var(--ink-4) / 0.5);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--ink-3) / 0.7);
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -12,6 +12,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
     <title>NemyCookies - Cookies Artesanais</title>
     <meta name="description" content="Cookies artesanais feitos sob encomenda. Sabores: KitKat, Nutella, Ovomaltine e Kinder Bueno." />
+    <script>
+      /* Aplica o tema salvo antes da pagina pintar, para nao piscar branco. */
+      (function () {
+        try {
+          var par = document.cookie.split("; ").find(function (c) { return c.indexOf("nemy_tema=") === 0 })
+          var t = par ? par.slice(10) : ""
+          if (t !== "dark" && t !== "light") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+          }
+          document.documentElement.setAttribute("data-theme", t)
+          var m = document.querySelector("meta[name=theme-color]")
+          if (m) m.setAttribute("content", t === "dark" ? "#120D0A" : "#2C1A0E")
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

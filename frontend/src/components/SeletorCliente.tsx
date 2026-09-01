@@ -52,14 +52,14 @@ export default function SeletorCliente({
 
   if (selecionado) {
     return (
-      <div className="flex items-center gap-2 bg-orange-50 border border-cookie-brown rounded-lg px-3 py-2">
-        <span className="flex-1 text-sm font-semibold text-cookie-dark truncate">{selecionado.name}</span>
+      <div className="flex items-center gap-2 bg-brand-soft border border-brand rounded-lg px-3 py-2">
+        <span className="flex-1 text-sm font-semibold text-ink truncate">{selecionado.name}</span>
         <button
           onClick={() => { onChange(null); setBusca(''); setAberto(false) }}
           aria-label="Trocar cliente"
-          className="w-6 h-6 rounded-full hover:bg-orange-100 flex items-center justify-center flex-shrink-0"
+          className="w-6 h-6 rounded-full hover:bg-brand-line flex items-center justify-center flex-shrink-0"
         >
-          <X size={14} className="text-gray-500" />
+          <X size={14} className="text-ink-2" />
         </button>
       </div>
     )
@@ -71,7 +71,7 @@ export default function SeletorCliente({
         type="button"
         onClick={() => setAberto(true)}
         aria-label="Abrir busca"
-        className="absolute left-0 top-0 h-full w-9 flex items-center justify-center text-gray-400 hover:text-cookie-brown transition-colors"
+        className="absolute left-0 top-0 h-full w-9 flex items-center justify-center text-ink-3 hover:text-brand transition-colors"
       >
         <Search size={15} />
       </button>
@@ -80,30 +80,30 @@ export default function SeletorCliente({
         onChange={(e) => { setBusca(e.target.value); setAberto(true) }}
         onFocus={() => setAberto(true)}
         placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-cookie-brown"
+        className="w-full border border-line rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-brand"
       />
 
       {aberto && (
-        <div className="absolute z-20 left-0 right-0 mt-1 bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden">
-          <div className="max-h-52 overflow-y-auto divide-y divide-gray-50">
+        <div className="absolute z-20 left-0 right-0 mt-1 bg-surface rounded-lg border border-line shadow-lg overflow-hidden">
+          <div className="max-h-52 overflow-y-auto divide-y divide-line-soft">
             {filtrados.map((c) => (
               <button
                 key={c.id}
                 onClick={() => { onChange(c.id); setBusca(''); setAberto(false) }}
-                className="w-full px-3 py-2 hover:bg-orange-50 text-left text-sm text-cookie-dark truncate transition-colors"
+                className="w-full px-3 py-2 hover:bg-brand-soft text-left text-sm text-ink truncate transition-colors"
               >
                 {c.name}
               </button>
             ))}
             {filtrados.length === 0 && (
-              <p className="px-3 py-2.5 text-xs text-gray-400">{vazioTexto}</p>
+              <p className="px-3 py-2.5 text-xs text-ink-3">{vazioTexto}</p>
             )}
           </div>
 
           {podeCadastrar && (
             <button
               onClick={async () => { await onCreate!(nomeNovo); setBusca(''); setAberto(false) }}
-              className="w-full flex items-center gap-1.5 border-t border-gray-100 px-3 py-2.5 text-xs font-semibold text-cookie-brown hover:bg-orange-50 transition-colors"
+              className="w-full flex items-center gap-1.5 border-t border-line px-3 py-2.5 text-xs font-semibold text-brand hover:bg-brand-soft transition-colors"
             >
               <UserPlus size={13} /> Cadastrar "{nomeNovo}"
             </button>
