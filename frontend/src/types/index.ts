@@ -53,6 +53,17 @@ export interface OrderResponse {
   items: OrderItemResponse[]
 }
 
+/** Registro do historico: quem fez o que e quando */
+export interface AuditEntry {
+  id: number
+  actor: string
+  action: string
+  description: string
+  entity?: string
+  entityId?: number
+  createdAt: string
+}
+
 /** Quantos cookies de cada sabor precisam ser feitos */
 export interface ProductionSummary {
   porSabor: { productId: number; productName: string; quantidade: number }[]
@@ -77,6 +88,8 @@ export interface TabSale {
   total: number
   paid: boolean
   paidAt?: string
+  /** quanto ja foi recebido; igual ao total quando a venda esta quitada */
+  paidAmount: number
   /** ja lancado na planilha pessoal */
   annotated: boolean
   annotatedAt?: string
@@ -87,6 +100,11 @@ export interface TabSale {
 export interface TabSummaryRow {
   customerId: number
   customerName: string
+  nickname?: string
+  /** so digitos, no formato 55 + DDD + numero */
+  phone?: string
+  /** cobranca pronta, montada no servidor */
+  message: string
   devendo: number
   vendasAbertas: number
   totalGeral: number
@@ -97,6 +115,8 @@ export interface TabSummaryRow {
 export interface TabCustomer {
   id: number
   name: string
+  /** apelido, usado so na mensagem de cobranca */
+  nickname?: string
   phone?: string
   devendo: number
   vendasAbertas: number

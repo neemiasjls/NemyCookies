@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  getTabCustomers, createTabCustomer, renameTabCustomer,
+  getTabCustomers, createTabCustomer, renameTabCustomer, setTabCustomerNickname, setTabCustomerPhone,
   deleteTabCustomer, mergeTabCustomers,
 } from '../../api/api'
 import { TabCustomer } from '../../types'
@@ -8,10 +8,21 @@ import { UserPlus, Pencil, Trash2, Search, Loader2, Users, Merge } from 'lucide-
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
+/** 5514998218858 -> (14) 99821-8858 */
+const fone = (v?: string) => {
+  if (!v) return ''
+  const d = v.replace(/[^0-9]/g, '').replace(/^55/, '')
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return v
+}
+
 export default function Clientes() {
   const [customers, setCustomers] = useState<TabCustomer[]>([])
   const [loading, setLoading] = useState(true)
   const [novo, setNovo] = useState('')
+  const [apelido, setApelido] = useState('')
+  const [telefone, setTelefone] = useState('')
   const [busca, setBusca] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [juntarDe, setJuntarDe] = useState<number | null>(null)
@@ -33,8 +44,8 @@ export default function Clientes() {
     if (jaExiste) return alert(`"${nome}" já está cadastrado.`)
     setSalvando(true)
     try {
-      await createTabCustomer(nome)
-      setNovo('')
+      await createTabCustomer(nome, apelido.trim() || undefined, telefone.trim() || undefined)
+      setNovo(''); setApelido(''); setTelefone('')
       await carregar()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erro ao cadastrar')
@@ -46,6 +57,22 @@ export default function Clientes() {
     if (!nome || nome.trim() === c.name) return
     try { await renameTabCustomer(c.id, nome.trim()); await carregar() }
     catch (e) { alert(e instanceof Error ? e.message : 'Erro ao renomear') }
+  }
+
+  /** Apelido so serve para a mensagem de cobranca; vazio remove. */
+  const editarApelido = async (c: TabCustomer) => {
+    const novoApelido = prompt(`Apelido de ${c.name} (usado na mensagem de cobrança):`, c.nickname ?? '')
+    if (novoApelido === null) return
+    try { await setTabCustomerNickname(c.id, novoApelido.trim()); await carregar() }
+    catch (e) { alert(e instanceof Error ? e.message : 'Erro ao salvar o apelido') }
+  }
+
+  /** Numero para onde vai a cobranca; vazio remove. */
+  const editarTelefone = async (c: TabCustomer) => {
+    const novoFone = prompt(`WhatsApp de ${c.name} (com DDD):`, fone(c.phone))
+    if (novoFone === null) return
+    try { await setTabCustomerPhone(c.id, novoFone.trim()); await carregar() }
+    catch (e) { alert(e instanceof Error ? e.message : 'Erro ao salvar o telefone') }
   }
 
   const excluir = async (c: TabCustomer) => {
@@ -82,15 +109,33 @@ export default function Clientes() {
         <h3 className="font-display font-bold text-cookie-dark mb-1">Cadastrar cliente</h3>
         <p className="text-xs text-gray-500 mb-3">
           Cadastre uma vez e depois é só selecionar na venda — assim o nome nunca fica repetido.
+          O apelido é opcional e só aparece na mensagem de cobrança.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             value={novo}
             onChange={(e) => setNovo(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') adicionar() }}
-            placeholder="Nome completo (ex.: Bruna Rebouças)"
+            placeholder="Nome completo"
             className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cookie-brown"
           />
+          <div className="flex gap-2">
+            <input
+              value={apelido}
+              onChange={(e) => setApelido(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') adicionar() }}
+              placeholder="Apelido"
+              className="flex-1 min-w-0 sm:w-36 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cookie-brown"
+            />
+            <input
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') adicionar() }}
+              placeholder="WhatsApp"
+              inputMode="tel"
+              className="flex-1 min-w-0 sm:w-40 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cookie-brown"
+            />
+          </div>
           <button
             onClick={adicionar}
             disabled={salvando || !novo.trim()}
@@ -158,7 +203,27 @@ export default function Clientes() {
                   juntarDe !== null && juntarDe !== c.id ? 'cursor-pointer hover:bg-blue-50' : ''
                 } ${juntarDe === c.id ? 'bg-blue-50' : ''}`}>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-cookie-dark truncate">{c.name}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-sm font-medium text-cookie-dark truncate">{c.name}</p>
+                    <button onClick={(e) => { e.stopPropagation(); editarApelido(c) }}
+                      title="Apelido usado na mensagem de cobrança"
+                      className={`text-[11px] leading-none px-1.5 py-1 rounded-full border transition-colors ${
+                        c.nickname
+                          ? 'bg-orange-50 border-orange-100 text-cookie-brown'
+                          : 'border-dashed border-gray-200 text-gray-300 hover:text-cookie-brown hover:border-cookie-brown'
+                      }`}>
+                      {c.nickname ?? '+ apelido'}
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); editarTelefone(c) }}
+                      title="WhatsApp usado para mandar a cobrança"
+                      className={`text-[11px] leading-none px-1.5 py-1 rounded-full border transition-colors ${
+                        c.phone
+                          ? 'bg-green-50 border-green-100 text-green-700'
+                          : 'border-dashed border-gray-200 text-gray-300 hover:text-green-700 hover:border-green-400'
+                      }`}>
+                      {c.phone ? fone(c.phone) : '+ whatsapp'}
+                    </button>
+                  </div>
                   {c.devendo > 0 ? (
                     <p className="text-xs text-red-500">
                       deve {brl(c.devendo)} · {c.vendasAbertas} venda{c.vendasAbertas === 1 ? '' : 's'}

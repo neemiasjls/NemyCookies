@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   getTabSales, getTabSummary, getTabCustomers, createTabSale, createTabCustomer,
-  setTabSalePaid, deleteTabSale,
-  payAllForCustomer, setTabSaleAnnotated, TabStatus,
+  setTabSalePaid, deleteTabSale, addTabPayment,
+  payAllForCustomer, setTabSaleAnnotated, annotateAllTabSales, markCharged, TabStatus,
 } from '../../api/api'
 import { Product, TabSale, TabSummaryRow, TabCustomer } from '../../types'
 import SeletorCliente from '../../components/SeletorCliente'
+import WhatsAppIcon from '../../components/WhatsAppIcon'
 import {
   Plus, Minus, Check, Trash2, Undo2, Loader2, CalendarDays,
-  NotebookPen, ClipboardCopy,
+  NotebookPen, ClipboardCopy, HandCoins, X, MessageCircle,
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -71,11 +72,56 @@ export default function Caderneta({ products }: { products: Product[] }) {
     } finally { setSalvando(false) }
   }
 
+  // Pagamento parcial: a pessoa pagou so um pedaco de uma venda.
+  // Fica escondido atras do icone de moedas, no card da venda.
+  const [parcialId, setParcialId] = useState<number | null>(null)
+  const [valorParcial, setValorParcial] = useState('')
+  const [salvandoParcial, setSalvandoParcial] = useState(false)
+
+  const fecharParcial = () => { setParcialId(null); setValorParcial('') }
+
+  const registrarParcial = async (v: TabSale) => {
+    const falta = v.total - v.paidAmount
+    const valor = Number(valorParcial.replace(',', '.'))
+    if (!Number.isFinite(valor) || valor <= 0) return alert('Informe um valor maior que zero')
+    if (valor > falta + 0.001) return alert(`Falta so ${brl(falta)} nessa venda.`)
+    setSalvandoParcial(true)
+    try {
+      await addTabPayment(v.id, Number(valor.toFixed(2)))
+      fecharParcial()
+      await carregar()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erro ao registrar o pagamento')
+    } finally { setSalvandoParcial(false) }
+  }
+
+  // Cobranca: o texto ja vem pronto do servidor junto do resumo
+  // (a chave Pix nunca fica no codigo do site).
+  const [copiadoId, setCopiadoId] = useState<number | null>(null)
+
+  const linkWhatsApp = (r: TabSummaryRow) =>
+    `https://wa.me/${r.phone}?text=${encodeURIComponent(r.message)}`
+
+  /** Usado quando a pessoa ainda nao tem WhatsApp cadastrado. */
+  const copiarCobranca = async (r: TabSummaryRow) => {
+    try {
+      await navigator.clipboard.writeText(r.message)
+      setCopiadoId(r.customerId)
+      setTimeout(() => setCopiadoId(null), 2500)
+    } catch {
+      alert('Copie a mensagem:\n\n' + r.message)
+    }
+  }
+
   const [copiado, setCopiado] = useState(false)
 
-  /** Formato da planilha: "cookie <nome>"  <TAB>  valor */
+  /**
+   * Formato da planilha: "cookie <nome>"  <TAB>  valor
+   * Ordem: da baixa mais antiga para a mais recente, igual ao lancamento.
+   */
   const copiarParaPlanilha = async () => {
-    const linhas = sales
+    const linhas = [...sales]
+      .sort((a, b) => (a.paidAt ?? '').localeCompare(b.paidAt ?? ''))
       .map((v) => `cookie ${v.customerName.toLowerCase()}\t${v.total.toFixed(2).replace('.', ',')}`)
       .join('\n')
     try {
@@ -85,6 +131,21 @@ export default function Caderneta({ products }: { products: Product[] }) {
     } catch {
       alert('Nao foi possivel copiar. Copie manualmente:\n\n' + linhas)
     }
+  }
+
+  const [anotandoTodas, setAnotandoTodas] = useState(false)
+
+  /** Marca de uma vez todas as vendas pagas que faltam anotar */
+  const anotarTodas = async () => {
+    if (!confirm(`Marcar as ${sales.length} venda(s) desta lista como anotadas na planilha?`)) return
+    setAnotandoTodas(true)
+    try {
+      const { anotadas } = await annotateAllTabSales()
+      await carregar()
+      alert(`${anotadas} venda(s) marcada(s) como anotadas.`)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erro ao marcar')
+    } finally { setAnotandoTodas(false) }
   }
 
   const totalAReceber = summary.reduce((s, r) => s + r.devendo, 0)
@@ -172,6 +233,30 @@ export default function Caderneta({ products }: { products: Product[] }) {
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <span className="text-sm font-bold text-cookie-dark tabular-nums">{brl(r.devendo)}</span>
+                  {r.phone ? (
+                    <a
+                      href={linkWhatsApp(r)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => { markCharged(r.customerId).catch(() => {}) }}
+                      title={`Abrir a conversa de ${r.customerName} no WhatsApp com a cobrança`}
+                      className="w-8 h-7 rounded-md border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 flex items-center justify-center transition-colors">
+                      <WhatsAppIcon size={14} />
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => copiarCobranca(r)}
+                      title={`${r.customerName} não tem WhatsApp cadastrado — copiar a mensagem`}
+                      className={`w-8 h-7 rounded-md border flex items-center justify-center transition-colors ${
+                        copiadoId === r.customerId
+                          ? 'text-green-700 bg-green-50 border-green-200'
+                          : 'text-cookie-brown bg-orange-50 hover:bg-orange-100 border-orange-200'
+                      }`}>
+                      {copiadoId === r.customerId
+                        ? <Check size={14} strokeWidth={3} />
+                        : <MessageCircle size={14} />}
+                    </button>
+                  )}
                   <button
                     onClick={async () => {
                       if (!confirm(`Marcar tudo de ${r.customerName} como pago (${brl(r.devendo)})?`)) return
@@ -204,16 +289,23 @@ export default function Caderneta({ products }: { products: Product[] }) {
           ))}
         </div>
 
-        {/* Copiar no formato da planilha */}
+        {/* Copiar e marcar como anotadas */}
         {filtro === 'to_annotate' && sales.length > 0 && (
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3 flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-xs text-blue-800">
-              Copie no formato da sua planilha e cole no Excel.
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-3">
+            <p className="text-xs text-blue-800 mb-2.5">
+              Copie no formato da sua planilha (da baixa mais antiga para a mais recente),
+              cole no Excel e depois marque todas como anotadas.
             </p>
-            <button onClick={copiarParaPlanilha}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
-              <ClipboardCopy size={13} /> {copiado ? 'Copiado!' : `Copiar ${sales.length} linha(s)`}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={copiarParaPlanilha}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
+                <ClipboardCopy size={13} /> {copiado ? 'Copiado!' : `Copiar ${sales.length} linha(s)`}
+              </button>
+              <button onClick={anotarTodas} disabled={anotandoTodas}
+                className="flex items-center gap-1.5 bg-white hover:bg-gray-50 text-blue-700 border border-blue-200 text-xs font-bold px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
+                <NotebookPen size={13} /> {anotandoTodas ? 'Salvando...' : 'Marcar todas como anotadas'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -236,48 +328,88 @@ export default function Caderneta({ products }: { products: Product[] }) {
                           PAGO E ANOTADO
                         </span>
                       ) : (
-                        <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
-                          PAGO - FALTA ANOTAR
-                        </span>
-                      )}
+                          <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                            PAGO - FALTA ANOTAR
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {v.items.map((i) => `${i.quantity}x ${i.productName.replace('Cookie ', '')}`).join(', ')}
+                      </p>
+                      <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
+                        <CalendarDays size={11} /> {dataBR(v.soldAt)}
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {v.items.map((i) => `${i.quantity}x ${i.productName.replace('Cookie ', '')}`).join(', ')}
-                    </p>
-                    <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
-                      <CalendarDays size={11} /> {dataBR(v.soldAt)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    <span className="font-bold text-cookie-brown tabular-nums">{brl(v.total)}</span>
-                    <div className="flex items-center gap-1">
-                      <button onClick={async () => { await setTabSalePaid(v.id, !v.paid); await carregar() }}
-                        title={v.paid ? 'Marcar como não pago' : 'Marcar como pago'}
-                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                          v.paid ? 'bg-gray-100 text-gray-500 hover:bg-gray-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}>
-                        {v.paid ? <Undo2 size={13} /> : <Check size={14} strokeWidth={3} />}
-                      </button>
-                      {v.paid && (
-                        <button onClick={async () => { await setTabSaleAnnotated(v.id, !v.annotated); await carregar() }}
-                          title={v.annotated ? 'Desmarcar anotado' : 'Marcar como anotado na planilha'}
+                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <div className="text-right leading-tight">
+                        <span className="font-bold text-cookie-brown tabular-nums">{brl(v.total)}</span>
+                        {!v.paid && v.paidAmount > 0 && (
+                          <p className="text-[10px] text-gray-400 tabular-nums mt-0.5">
+                            pago {brl(v.paidAmount)} · falta{' '}
+                            <span className="font-bold text-orange-600">{brl(v.total - v.paidAmount)}</span>
+                          </p>
+                        )}
+                      </div>
+                      {parcialId === v.id ? (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] text-gray-400">R$</span>
+                          <input
+                            type="number" step="0.01" min="0" inputMode="decimal" autoFocus
+                            value={valorParcial}
+                            onChange={(e) => setValorParcial(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') registrarParcial(v)
+                              if (e.key === 'Escape') fecharParcial()
+                            }}
+                            placeholder={(v.total - v.paidAmount).toFixed(2)}
+                            className="no-spinner w-20 border border-gray-200 rounded-md px-2 py-1 text-sm text-right tabular-nums focus:outline-none focus:border-cookie-brown" />
+                          <button onClick={() => registrarParcial(v)} disabled={salvandoParcial}
+                            title="Abater esse valor"
+                            className="w-7 h-7 rounded-full bg-green-100 text-green-700 hover:bg-green-200 flex items-center justify-center transition-colors disabled:opacity-50">
+                            <Check size={14} strokeWidth={3} />
+                          </button>
+                          <button onClick={fecharParcial} title="Cancelar"
+                            className="w-7 h-7 rounded-full text-gray-300 hover:bg-gray-100 flex items-center justify-center transition-colors">
+                            <X size={13} />
+                          </button>
+                        </div>
+                      ) : (
+                      <div className="flex items-center gap-1">
+                        <button onClick={async () => { await setTabSalePaid(v.id, !v.paid); await carregar() }}
+                          title={v.paid ? 'Marcar como não pago' : 'Marcar como pago'}
                           className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                            v.annotated ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            v.paid ? 'bg-gray-100 text-gray-500 hover:bg-gray-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
                           }`}>
-                          <NotebookPen size={13} />
+                          {v.paid ? <Undo2 size={13} /> : <Check size={14} strokeWidth={3} />}
                         </button>
-                      )}
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Excluir a venda de ${v.customerName} (${brl(v.total)})?`)) return
-                          await deleteTabSale(v.id); await carregar()
-                        }}
-                        title="Excluir"
-                        className="w-7 h-7 rounded-full text-gray-300 hover:bg-red-50 hover:text-red-400 flex items-center justify-center transition-colors">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                        {v.paid && (
+                          <button onClick={async () => { await setTabSaleAnnotated(v.id, !v.annotated); await carregar() }}
+                            title={v.annotated ? 'Desmarcar anotado' : 'Marcar como anotado na planilha'}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                              v.annotated ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                          : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            }`}>
+                            <NotebookPen size={13} />
+                          </button>
+                        )}
+                        {!v.paid && (
+                          <button onClick={() => { setParcialId(v.id); setValorParcial('') }}
+                            title="Recebeu só uma parte"
+                            className="w-7 h-7 rounded-full text-gray-300 hover:bg-orange-50 hover:text-cookie-brown flex items-center justify-center transition-colors">
+                            <HandCoins size={13} />
+                          </button>
+                        )}
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Excluir a venda de ${v.customerName} (${brl(v.total)})?`)) return
+                            await deleteTabSale(v.id); await carregar()
+                          }}
+                          title="Excluir"
+                          className="w-7 h-7 rounded-full text-gray-300 hover:bg-red-50 hover:text-red-400 flex items-center justify-center transition-colors">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -7,6 +7,7 @@ import { OrderResponse, OrderStatus, Product } from '../../types'
 import OrderStatusBadge from '../../components/OrderStatusBadge'
 import Caderneta from './Caderneta'
 import Clientes from './Clientes'
+import Historico from './Historico'
 import PedidoManual from './PedidoManual'
 import { useNavigate } from 'react-router-dom'
 import { RefreshCw, LogOut, Info, MapPin, FileText, QrCode, CreditCard, Banknote, Truck, Store, Plus, Minus } from 'lucide-react'
@@ -22,7 +23,7 @@ const STATUS_ACTIONS: Record<OrderStatus, { next: OrderStatus; label: string; co
   CANCELLED: [],
 }
 
-type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes'
+type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes' | 'historico'
 type FilterStatus = 'ALL' | OrderStatus
 
 export default function AdminDashboard() {
@@ -159,6 +160,12 @@ export default function AdminDashboard() {
             Caderneta
           </button>
           <button
+            onClick={() => setTab('historico')}
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-sm font-semibold transition-colors ${tab === 'historico' ? 'bg-cookie-brown text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-cookie-brown'}`}
+          >
+            Histórico
+          </button>
+          <button
             onClick={() => setTab('clientes')}
             className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-[13px] sm:text-sm font-semibold transition-colors ${tab === 'clientes' ? 'bg-cookie-brown text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-cookie-brown'}`}
           >
@@ -171,6 +178,9 @@ export default function AdminDashboard() {
 
         {/* ── ABA CLIENTES ── */}
         {tab === 'clientes' && <Clientes />}
+
+        {/* ── ABA HISTORICO ── */}
+        {tab === 'historico' && <Historico />}
 
         {/* ── ABA PEDIDOS ── */}
         {tab === 'orders' && (
