@@ -64,6 +64,26 @@ export interface AuditEntry {
   createdAt: string
 }
 
+/** Um item do lote levado para vender */
+export interface ProducaoItem {
+  productId: number
+  productName: string
+  levado: number
+  vendido: number
+  restante: number
+}
+
+/** Lote aberto: o que foi produzido e quanto ja saiu */
+export interface Producao {
+  id: number
+  label?: string
+  startedAt: string
+  itens: ProducaoItem[]
+  levado: number
+  vendido: number
+  restante: number
+}
+
 /** Quantos cookies de cada sabor precisam ser feitos */
 export interface ProductionSummary {
   porSabor: { productId: number; productName: string; quantidade: number }[]
