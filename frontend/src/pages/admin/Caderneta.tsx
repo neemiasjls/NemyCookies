@@ -6,6 +6,7 @@ import {
 } from '../../api/api'
 import { Product, TabSale, TabSummaryRow, TabCustomer } from '../../types'
 import SeletorCliente from '../../components/SeletorCliente'
+import Producao from './Producao'
 import WhatsAppIcon from '../../components/WhatsAppIcon'
 import {
   Plus, Minus, Check, Trash2, Undo2, Loader2, CalendarDays,
@@ -23,6 +24,8 @@ export default function Caderneta({ products }: { products: Product[] }) {
   const [filtro, setFiltro] = useState<TabStatus>('open')
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
+  // sobe a cada recarga para o painel de producao acompanhar as vendas novas
+  const [versao, setVersao] = useState(0)
 
   // formulario de venda
   const [pessoaId, setPessoaId] = useState<number | null>(null)
@@ -37,6 +40,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
         getTabSales(status), getTabSummary(), getTabCustomers(),
       ])
       setSales(lista); setSummary(resumo); setCustomers(pessoas)
+      setVersao((n) => n + 1)
     } finally { setLoading(false) }
   }
 
@@ -152,6 +156,9 @@ export default function Caderneta({ products }: { products: Product[] }) {
 
   return (
     <div className="space-y-4">
+      {/* ---------- Produção levada para vender ---------- */}
+      <Producao products={products} recarregar={versao} />
+
       {/* ---------- Registrar venda ---------- */}
       <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
         <h3 className="font-display font-bold text-ink mb-3">Registrar venda</h3>

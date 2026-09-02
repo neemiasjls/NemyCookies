@@ -1,6 +1,6 @@
 import {
   OrderResponse, OrderStatus, Product, Category,
-  PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, ProductionSummary,
+  PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, ProductionSummary, Producao,
   AuditEntry,
 } from '../types'
 
@@ -188,6 +188,44 @@ export const addProductStock = (id: number, quantity: number): Promise<Product> 
 export const adjustProductStock = (id: number, delta: number): Promise<Product> =>
   requestAdmin(`${FN}/admin/products/${id}/stock/adjust`, { method: 'PATCH', body: JSON.stringify({ delta }) })
     .then(toProduct)
+
+// ── Producao levada para vender ───────────────────────
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const toProducao = (p: any): Producao | null => p ? ({
+  id: p.id,
+  label: p.label ?? undefined,
+  startedAt: p.started_at,
+  itens: (p.itens ?? []).map((i: any) => ({
+    productId: i.product_id,
+    productName: i.product_name,
+    levado: i.levado,
+    vendido: i.vendido,
+    restante: i.restante,
+  })),
+  levado: Number(p.levado ?? 0),
+  vendido: Number(p.vendido ?? 0),
+  restante: Number(p.restante ?? 0),
+}) : null
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** Lote aberto, ou null quando nao tem nenhum */
+export const getProducao = (): Promise<Producao | null> =>
+  requestAdmin(`${FN}/admin/producao`).then(toProducao)
+
+export const abrirProducao = (
+  items: { productId: number; quantity: number }[],
+  label?: string,
+): Promise<Producao | null> =>
+  requestAdmin(`${FN}/admin/producao`, { method: 'POST', body: JSON.stringify({ items, label }) })
+    .then(toProducao)
+
+/** Levou mais alguns (delta > 0) ou tirou (delta < 0) */
+export const ajustarProducao = (productId: number, delta: number): Promise<Producao | null> =>
+  requestAdmin(`${FN}/admin/producao/ajustar`, { method: 'PATCH', body: JSON.stringify({ productId, delta }) })
+    .then(toProducao)
+
+export const fecharProducao = (): Promise<{ ok: boolean }> =>
+  requestAdmin(`${FN}/admin/producao/fechar`, { method: 'POST' })
 
 // ── Caderneta (fiado) ─────────────────────────────────
 /* eslint-disable @typescript-eslint/no-explicit-any */

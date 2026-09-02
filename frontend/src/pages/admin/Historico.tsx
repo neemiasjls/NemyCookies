@@ -4,6 +4,7 @@ import { AuditEntry } from '../../types'
 import {
   Loader2, RefreshCw, User, Globe, Search,
   Wallet, NotebookPen, ShoppingBag, Package, UserRound, LogIn, ShieldAlert, Trash2, HandCoins, MessageCircle,
+  PackageCheck,
 } from 'lucide-react'
 
 /** Aparencia de cada tipo de acao no historico */
@@ -22,6 +23,9 @@ const ESTILO: Record<string, { Icon: typeof Wallet; cor: string; fundo: string }
   pedido_status:      { Icon: ShoppingBag,  cor: 'text-info',     fundo: 'bg-info-bg' },
   pagamento_aprovado: { Icon: Wallet,       cor: 'text-success',    fundo: 'bg-success-bg' },
   pagamento_recusado: { Icon: Wallet,       cor: 'text-danger',      fundo: 'bg-danger-bg' },
+  producao_aberta:    { Icon: PackageCheck, cor: 'text-brand',   fundo: 'bg-brand-soft' },
+  producao_ajustada:  { Icon: PackageCheck, cor: 'text-info',    fundo: 'bg-info-bg' },
+  producao_fechada:   { Icon: PackageCheck, cor: 'text-success', fundo: 'bg-success-bg' },
   estoque_ajustado:   { Icon: Package,      cor: 'text-brand', fundo: 'bg-brand-soft' },
   estoque_definido:   { Icon: Package,      cor: 'text-brand', fundo: 'bg-brand-soft' },
   cliente_criado:     { Icon: UserRound,    cor: 'text-success',    fundo: 'bg-success-bg' },
@@ -41,6 +45,7 @@ const FILTROS = [
   { v: 'venda',    label: 'Caderneta' },
   { v: 'pedido',   label: 'Pedidos' },
   { v: 'produto',  label: 'Estoque' },
+  { v: 'producao', label: 'Produção' },
   { v: 'cliente',  label: 'Clientes' },
   { v: 'acesso',   label: 'Acessos' },
 ]
