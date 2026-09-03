@@ -9,10 +9,14 @@ import Caderneta from './Caderneta'
 import Clientes from './Clientes'
 import Historico from './Historico'
 import PedidoManual from './PedidoManual'
+import Vendas from './Vendas'
+import Custos from './Custos'
+import Compras from './Compras'
 import { useNavigate } from 'react-router-dom'
 import {
   RefreshCw, LogOut, Info, MapPin, FileText, QrCode, CreditCard, Banknote,
   Truck, Store, Plus, Minus, ShoppingBag, Package, Wallet, History, Users, Inbox,
+  TrendingUp, Calculator, ShoppingCart,
 } from 'lucide-react'
 import ThemeToggle from '../../components/ThemeToggle'
 
@@ -30,13 +34,19 @@ const STATUS_ACTIONS: Record<OrderStatus, { next: OrderStatus; label: string; co
 }
 
 type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes' | 'historico'
+  | 'vendas' | 'custos' | 'compras'
 
-const ABAS: { id: Tab; label: string; Icon: typeof ShoppingBag }[] = [
-  { id: 'orders',    label: 'Pedidos',   Icon: ShoppingBag },
-  { id: 'stock',     label: 'Estoque',   Icon: Package },
-  { id: 'caderneta', label: 'Caderneta', Icon: Wallet },
-  { id: 'historico', label: 'Histórico', Icon: History },
-  { id: 'clientes',  label: 'Clientes',  Icon: Users },
+/* Dois grupos: em cima a Orvalho e os clientes dela (o controle do dia a dia),
+   embaixo o resto do negocio. */
+const ABAS: { id: Tab; label: string; Icon: typeof ShoppingBag; grupo: 1 | 2 }[] = [
+  { id: 'caderneta', label: 'Orvalho',   Icon: Wallet,       grupo: 1 },
+  { id: 'clientes',  label: 'Clientes',  Icon: Users,        grupo: 1 },
+  { id: 'orders',    label: 'Pedidos',   Icon: ShoppingBag,  grupo: 2 },
+  { id: 'stock',     label: 'Estoque',   Icon: Package,      grupo: 2 },
+  { id: 'vendas',    label: 'Vendas',    Icon: TrendingUp,   grupo: 2 },
+  { id: 'custos',    label: 'Custos',    Icon: Calculator,   grupo: 2 },
+  { id: 'compras',   label: 'Compras',   Icon: ShoppingCart, grupo: 2 },
+  { id: 'historico', label: 'Histórico', Icon: History,      grupo: 2 },
 ]
 type FilterStatus = 'ALL' | OrderStatus
 
@@ -156,35 +166,42 @@ export default function AdminDashboard() {
 
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Tabs */}
-        <nav className="flex flex-wrap gap-1.5 mb-5" aria-label="Seções do painel">
-          {ABAS.map(({ id, label, Icon }) => {
-            const ativa = tab === id
-            return (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                aria-current={ativa ? 'page' : undefined}
-                className={`inline-flex items-center gap-1.5 h-9 sm:h-10 px-3 sm:px-4 rounded-full text-[13px] font-semibold transition-colors ${
-                  ativa
-                    ? 'bg-brand text-brand-ink shadow-card'
-                    : 'text-ink-2 hover:text-brand hover:bg-brand-soft'
-                }`}
-              >
-                <Icon size={15} className={ativa ? undefined : 'text-ink-3'} />
-                {label}
-                {id === 'orders' && pendingCount > 0 && (
-                  <span
-                    className={`text-[11px] font-bold px-1.5 rounded-full tabular-nums ${
-                      ativa ? 'bg-black/15 text-brand-ink' : 'bg-gold text-shell'
+        {/* Abas em dois grupos: em cima o controle da Orvalho, embaixo o negocio */}
+        <div className="mb-5 space-y-2">
+          {([1, 2] as const).map((grupo) => (
+            <nav key={grupo}
+              aria-label={grupo === 1 ? 'Orvalho' : 'Negócio'}
+              className={`flex flex-wrap gap-1.5 ${grupo === 2 ? 'pt-2.5 border-t border-line-soft' : ''}`}>
+              {ABAS.filter((a) => a.grupo === grupo).map(({ id, label, Icon }) => {
+                const ativa = tab === id
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setTab(id)}
+                    aria-current={ativa ? 'page' : undefined}
+                    className={`inline-flex items-center gap-1.5 h-9 sm:h-10 px-3 sm:px-4 rounded-full text-[13px] font-semibold transition-colors ${
+                      ativa
+                        ? 'bg-brand text-brand-ink shadow-card'
+                        : 'text-ink-2 hover:text-brand hover:bg-brand-soft'
                     }`}
                   >
-                    {pendingCount}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
+                    <Icon size={15} className={ativa ? undefined : 'text-ink-3'} />
+                    {label}
+                    {id === 'orders' && pendingCount > 0 && (
+                      <span
+                        className={`text-[11px] font-bold px-1.5 rounded-full tabular-nums ${
+                          ativa ? 'bg-black/15 text-brand-ink' : 'bg-gold text-shell'
+                        }`}
+                      >
+                        {pendingCount}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </nav>
+          ))}
+        </div>
         {/* ── ABA CADERNETA (fiado) ── */}
         {tab === 'caderneta' && <Caderneta products={products} />}
 
@@ -193,6 +210,11 @@ export default function AdminDashboard() {
 
         {/* ── ABA HISTORICO ── */}
         {tab === 'historico' && <Historico />}
+
+        {/* ── ABAS DO SISTEMA DA PLANILHA ── */}
+        {tab === 'vendas'  && <Vendas />}
+        {tab === 'custos'  && <Custos />}
+        {tab === 'compras' && <Compras />}
 
         {/* ── ABA PEDIDOS ── */}
         {tab === 'orders' && (

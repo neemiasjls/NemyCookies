@@ -151,3 +151,159 @@ export interface PixPaymentCreatedResponse {
   totalAmount: number
   expiresAt: string
 }
+
+/* =====================================================================
+   Sistema que veio da planilha: custos, compras e vendas gerais.
+   Nao se mistura com a caderneta da Orvalho nem com os clientes dela.
+   ===================================================================== */
+
+export type UnidadeIngrediente = 'g' | 'ml' | 'un'
+
+/** Um preco do mesmo ingrediente num mercado. Um deles e a referencia do custo. */
+export interface PrecoIngrediente {
+  id: number
+  packageQty: number
+  packagePrice: number
+  market?: string
+  isReference: boolean
+  unitCost: number
+}
+
+export interface Ingrediente {
+  id: number
+  name: string
+  unit: UnidadeIngrediente
+  notes?: string
+  /** custo por g/ml/un vindo do preco de referencia; null se nao tem preco */
+  unitCost: number | null
+  precos: PrecoIngrediente[]
+}
+
+export interface ItemReceita {
+  id: number
+  ingredientId: number
+  label: string
+  ingredientName: string
+  quantity: number
+  unit: UnidadeIngrediente
+  note?: string
+  unitCost: number
+  totalCost: number
+  costPerCookie: number
+}
+
+export interface Receita {
+  id: number
+  name: string
+  /** quantos cookies saem de uma receita */
+  yield: number
+  totalCost: number
+  costPerCookie: number
+  itens: ItemReceita[]
+}
+
+export interface Embalagem {
+  id: number
+  name: string
+  unitCost: number
+  note?: string
+  active: boolean
+}
+
+export type ComponenteSabor = 'chocolate' | 'recheio' | 'topo' | 'extra'
+
+export interface ItemSabor {
+  id: number
+  component: ComponenteSabor
+  ingredientId: number
+  ingredientName: string
+  quantity: number
+  unit: UnidadeIngrediente
+  note?: string
+  unitCost: number
+  totalCost: number
+}
+
+export interface CustoSabor {
+  productId: number
+  name: string
+  salePrice: number
+  ingredientsCost: number
+  doughCost: number
+  packagingCost: number
+  totalCost: number
+  margin: number
+  itens: ItemSabor[]
+}
+
+export interface Custos {
+  ingredientes: Ingrediente[]
+  receita: Receita | null
+  embalagem: Embalagem[]
+  embalagemTotal: number
+  sabores: CustoSabor[]
+}
+
+export type CategoriaCompra =
+  | 'ingrediente' | 'embalagem' | 'descartavel' | 'equipamento' | 'marketing' | 'outro'
+
+export interface Compra {
+  id: number
+  boughtAt?: string
+  item: string
+  quantity?: string
+  unit?: string
+  amount: number
+  market?: string
+  category: CategoriaCompra
+  notes?: string
+}
+
+export interface ListaCompras {
+  itens: Compra[]
+  quantas: number
+  total: number
+  porCategoria: { category: CategoriaCompra; linhas: number; total: number }[]
+}
+
+export type TipoVenda = 'venda' | 'consumo_proprio' | 'brinde'
+export type ModoEntrega = 'entrega' | 'retirada'
+
+export interface VendaGeral {
+  /** de onde veio: lancada aqui ou uma venda ja quitada da Orvalho */
+  origin: 'geral' | 'orvalho'
+  id: number
+  soldAt?: string
+  customerName: string
+  amount: number
+  /** taxa cobrada do cliente */
+  deliveryFee: number
+  /** combustivel que voce gastou para entregar */
+  deliveryCost: number
+  /** retirada nao tem taxa nem gasto */
+  deliveryMode: ModoEntrega
+  kind: TipoVenda
+  notes?: string
+}
+
+export interface ListaVendas {
+  itens: VendaGeral[]
+  quantas: number
+  cookies: number
+  taxas: number
+  combustivel: number
+  consumo: number
+  retiradas: number
+  porOrigem: { origin: string; vendas: number; total: number }[]
+}
+
+export interface ResumoFinanceiro {
+  receita: number
+  cookies: number
+  taxas: number
+  combustivel: number
+  compras: number
+  saldo: number
+  /** ainda em aberto na caderneta da Orvalho */
+  aReceber: number
+}

@@ -1,7 +1,8 @@
 import {
   OrderResponse, OrderStatus, Product, Category,
   PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, ProductionSummary, Producao,
-  AuditEntry,
+  AuditEntry, Custos, ListaCompras, ListaVendas, ResumoFinanceiro,
+  Compra, VendaGeral, CategoriaCompra, TipoVenda, ModoEntrega,
 } from '../types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -365,3 +366,79 @@ export const deleteTabSale = (id: number): Promise<{ message: string }> =>
 
 export const payAllForCustomer = (customerId: number): Promise<{ quitadas: number }> =>
   requestAdmin(`${FN}/admin/tab/pay-all`, { method: 'POST', body: JSON.stringify({ customerId }) })
+
+/* =====================================================================
+   Sistema da planilha (Edge Function /planilha).
+   Usa o mesmo token do painel; e uma funcao separada de proposito.
+   ===================================================================== */
+const PLAN = `${FN}/planilha`
+
+const post = <T>(url: string, body: unknown) =>
+  requestAdmin<T>(url, { method: 'POST', body: JSON.stringify(body) })
+const patch = <T>(url: string, body?: unknown) =>
+  requestAdmin<T>(url, { method: 'PATCH', ...(body ? { body: JSON.stringify(body) } : {}) })
+const del = <T>(url: string) => requestAdmin<T>(url, { method: 'DELETE' })
+
+export const getResumoFinanceiro = () => requestAdmin<ResumoFinanceiro>(`${PLAN}/resumo`)
+
+/* ---------- Custos ---------- */
+export const getCustos = () => requestAdmin<Custos>(`${PLAN}/custos`)
+
+export const salvarIngrediente = (b: {
+  id?: number; name: string; unit: string; notes?: string | null
+}) => post(`${PLAN}/custos/ingrediente`, b)
+
+export const excluirIngrediente = (id: number) => del(`${PLAN}/custos/ingrediente/${id}`)
+
+export const salvarPreco = (b: {
+  id?: number; ingredientId?: number; packageQty: number
+  packagePrice: number; market?: string | null; isReference?: boolean
+}) => post(`${PLAN}/custos/preco`, b)
+
+/** Passa a calcular o custo dos sabores por este preco. */
+export const usarPrecoDeReferencia = (id: number) => patch(`${PLAN}/custos/preco/${id}/referencia`)
+export const excluirPreco = (id: number) => del(`${PLAN}/custos/preco/${id}`)
+
+export const definirRendimento = (rendimento: number) =>
+  patch(`${PLAN}/custos/receita`, { yield: rendimento })
+
+export const salvarItemReceita = (b: {
+  id?: number; ingredientId?: number; label?: string | null
+  quantity: number; note?: string | null
+}) => post(`${PLAN}/custos/receita/item`, b)
+
+export const excluirItemReceita = (id: number) => del(`${PLAN}/custos/receita/item/${id}`)
+
+export const salvarEmbalagem = (b: {
+  id?: number; name: string; unitCost: number; note?: string | null; active?: boolean
+}) => post(`${PLAN}/custos/embalagem`, b)
+
+export const excluirEmbalagem = (id: number) => del(`${PLAN}/custos/embalagem/${id}`)
+
+export const salvarItemSabor = (b: {
+  id?: number; productId?: number; component?: string
+  ingredientId?: number; quantity: number; note?: string | null
+}) => post(`${PLAN}/custos/sabor/item`, b)
+
+export const excluirItemSabor = (id: number) => del(`${PLAN}/custos/sabor/item/${id}`)
+
+/* ---------- Compras ---------- */
+export const getCompras = (categoria?: CategoriaCompra) =>
+  requestAdmin<ListaCompras>(`${PLAN}/compras${categoria ? `?category=${categoria}` : ''}`)
+
+export const salvarCompra = (b: Partial<Compra> & { item: string; amount: number }) =>
+  post<Compra>(`${PLAN}/compras`, b)
+
+export const excluirCompra = (id: number) => del(`${PLAN}/compras/${id}`)
+
+/* ---------- Vendas gerais ---------- */
+export const getVendas = (origem?: 'geral' | 'orvalho') =>
+  requestAdmin<ListaVendas>(`${PLAN}/vendas${origem ? `?origin=${origem}` : ''}`)
+
+export const salvarVenda = (b: {
+  id?: number; soldAt?: string | null; customerName: string; amount: number
+  deliveryFee?: number; deliveryCost?: number; kind?: TipoVenda
+  deliveryMode?: ModoEntrega; notes?: string | null
+}) => post<VendaGeral>(`${PLAN}/vendas`, b)
+
+export const excluirVenda = (id: number) => del(`${PLAN}/vendas/${id}`)

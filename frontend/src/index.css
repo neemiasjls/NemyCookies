@@ -59,6 +59,11 @@
   --accent-bg: 246 240 253;
   --accent-line: 226 211 246;
 
+  /* teal da logo da Orvalho, escurecido o suficiente para dar 5,1:1 no claro */
+  --orvalho: 10 113 106;
+  --orvalho-bg: 230 247 245;
+  --orvalho-line: 168 222 217;
+
   --shadow: 66 40 20;
 }
 
@@ -111,6 +116,11 @@
   --accent: 199 168 244;
   --accent-bg: 45 35 62;
   --accent-line: 73 57 99;
+
+  /* no escuro o teal precisa clarear para continuar legivel */
+  --orvalho: 94 214 203;
+  --orvalho-bg: 16 58 55;
+  --orvalho-line: 28 88 83;
 
   --shadow: 0 0 0;
 }
