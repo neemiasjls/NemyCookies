@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getCompras, salvarCompra, excluirCompra } from '../../api/api'
 import { ListaCompras, Compra, CategoriaCompra } from '../../types'
-import { Loader2, Plus, Trash2, Pencil, ShoppingCart } from 'lucide-react'
+import { Loader2, Plus, Trash2, Pencil, ShoppingCart, Fuel } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 const dataBR = (iso?: string) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR') : '—')
@@ -79,11 +79,14 @@ export default function Compras() {
       <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display font-bold text-ink flex items-center gap-2">
-            <ShoppingCart size={17} className="text-brand" /> Compras
+            <ShoppingCart size={17} className="text-brand" /> Compras e gastos
           </h3>
           <div className="text-right">
-            <p className="text-lg font-bold text-ink tabular-nums">{brl(d?.total ?? 0)}</p>
-            <p className="text-[11px] text-ink-3 tabular-nums">{d?.quantas ?? 0} lançamentos</p>
+            <p className="text-lg font-bold text-ink tabular-nums">{brl(d?.totalGeral ?? 0)}</p>
+            <p className="text-[11px] text-ink-3 tabular-nums">
+              {d?.quantas ?? 0} compras
+              {d?.combustivel ? ` + ${brl(d.combustivel)} de combustível` : ''}
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -102,8 +105,26 @@ export default function Compras() {
               <span className="ml-1.5 tabular-nums opacity-70">{brl(c.total)}</span>
             </button>
           ))}
+          {/* Combustivel nao e linha de compra: e a soma do que voce gastou para
+              entregar, que fica registrada em cada venda. */}
+          {!!d?.combustivel && (
+            <span
+              title={`Somado de ${d.entregasComGasto} entregas com gasto anotado. Para mudar, edite a venda na aba Vendas.`}
+              className="h-8 px-3 rounded-full text-xs font-semibold border border-dashed border-line text-ink-2 inline-flex items-center gap-1.5 cursor-help">
+              <Fuel size={13} className="text-ink-3" />
+              Combustível
+              <span className="tabular-nums opacity-70">{brl(d.combustivel)}</span>
+            </span>
+          )}
         </div>
       </div>
+
+      {!!d?.combustivel && (
+        <p className="text-[11px] text-ink-3 -mt-1 px-1">
+          O combustível vem das entregas ({d.entregasComGasto} com gasto anotado) e não é
+          lançado aqui — cada venda guarda o seu. Para ajustar, edite a venda na aba Vendas.
+        </p>
+      )}
 
       {/* Formulario */}
       {form ? (

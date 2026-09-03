@@ -262,7 +262,13 @@ export interface Compra {
 export interface ListaCompras {
   itens: Compra[]
   quantas: number
+  /** so as linhas de compra */
   total: number
+  /** combustivel das entregas; mora nas vendas e aparece aqui somado */
+  combustivel: number
+  entregasComGasto: number
+  /** total + combustivel: o que realmente saiu do bolso */
+  totalGeral: number
   porCategoria: { category: CategoriaCompra; linhas: number; total: number }[]
 }
 
