@@ -379,6 +379,11 @@ const patch = <T>(url: string, body?: unknown) =>
   requestAdmin<T>(url, { method: 'PATCH', ...(body ? { body: JSON.stringify(body) } : {}) })
 const del = <T>(url: string) => requestAdmin<T>(url, { method: 'DELETE' })
 
+/** Apaga o pedido de vez. O estoque so volta se o pedido ainda estava valendo. */
+export const excluirPedido = (id: number) =>
+  requestAdmin<{ customer_name: string; itens: string; estoque_devolvido: boolean }>(
+    `${FN}/admin/orders/${id}`, { method: 'DELETE' })
+
 export const getResumoFinanceiro = () => requestAdmin<ResumoFinanceiro>(`${PLAN}/resumo`)
 
 /* ---------- Custos ---------- */
