@@ -44,8 +44,8 @@ const ABAS: { id: Tab; label: string; Icon: typeof ShoppingBag; grupo: 1 | 2 }[]
   { id: 'orders',    label: 'Pedidos',   Icon: ShoppingBag,  grupo: 2 },
   { id: 'stock',     label: 'Estoque',   Icon: Package,      grupo: 2 },
   { id: 'vendas',    label: 'Vendas',    Icon: TrendingUp,   grupo: 2 },
-  { id: 'custos',    label: 'Custos',    Icon: Calculator,   grupo: 2 },
-  { id: 'compras',   label: 'Compras',   Icon: ShoppingCart, grupo: 2 },
+  { id: 'custos',    label: 'Precificação', Icon: Calculator, grupo: 2 },
+  { id: 'compras',   label: 'Compras/Gastos', Icon: ShoppingCart, grupo: 2 },
   { id: 'historico', label: 'Histórico', Icon: History,      grupo: 2 },
 ]
 type FilterStatus = 'ALL' | OrderStatus
