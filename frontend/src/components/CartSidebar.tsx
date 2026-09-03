@@ -2,7 +2,7 @@ import { useCart } from '../context/CartContext'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingBag, Cookie, Minus, Plus, Trash2, Truck } from 'lucide-react'
 
-const FRETE_GRATIS = 50
+import { FRETE_GRATIS_A_PARTIR_DE as FRETE_GRATIS } from '../entrega'
 
 export default function CartSidebar() {
   const { items, updateQuantity, removeItem, total, itemCount } = useCart()

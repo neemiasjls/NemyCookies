@@ -14,8 +14,7 @@ import {
   Store, Truck,
 } from 'lucide-react'
 
-const DELIVERY_FEE = 4
-const FREE_DELIVERY_THRESHOLD = 50
+import { TAXA_ENTREGA as DELIVERY_FEE, FRETE_GRATIS_A_PARTIR_DE as FREE_DELIVERY_THRESHOLD } from '../entrega'
 
 const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY
 initMercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' })

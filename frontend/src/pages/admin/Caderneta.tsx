@@ -10,7 +10,7 @@ import Producao from './Producao'
 import WhatsAppIcon from '../../components/WhatsAppIcon'
 import {
   Plus, Minus, Check, Trash2, Undo2, Loader2, CalendarDays,
-  NotebookPen, ClipboardCopy, HandCoins, X, MessageCircle,
+  NotebookPen, ClipboardCopy, HandCoins, X, MessageCircle, ChevronRight,
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -26,6 +26,11 @@ export default function Caderneta({ products }: { products: Product[] }) {
   const [salvando, setSalvando] = useState(false)
   // sobe a cada recarga para o painel de producao acompanhar as vendas novas
   const [versao, setVersao] = useState(0)
+  // qual cliente do "A receber" esta com a lista de vendas aberta
+  const [abertoId, setAbertoId] = useState<number | null>(null)
+  // vendas em aberto, guardadas a parte: o filtro da tela pode estar em outra aba
+  const [abertas, setAbertas] = useState<TabSale[] | null>(null)
+  const [buscandoVendas, setBuscandoVendas] = useState(false)
 
   // formulario de venda
   const [pessoaId, setPessoaId] = useState<number | null>(null)
@@ -40,6 +45,12 @@ export default function Caderneta({ products }: { products: Product[] }) {
         getTabSales(status), getTabSummary(), getTabCustomers(),
       ])
       setSales(lista); setSummary(resumo); setCustomers(pessoas)
+      // as vendas em aberto alimentam os dropdowns do "A receber".
+      // Se voce esta numa aba de pagos com um dropdown aberto, busca elas a parte,
+      // senao o cartao sumiria da tela logo depois de voce mexer nele.
+      if (status === 'open') setAbertas(lista)
+      else if (abertoId !== null) setAbertas(await getTabSales('open'))
+      else setAbertas(null)
       setVersao((n) => n + 1)
     } finally { setLoading(false) }
   }
@@ -117,6 +128,20 @@ export default function Caderneta({ products }: { products: Product[] }) {
     }
   }
 
+  /** Abre/fecha a lista de vendas da pessoa no "A receber". */
+  const alternarVendas = async (customerId: number) => {
+    if (abertoId === customerId) { setAbertoId(null); return }
+    setAbertoId(customerId)
+    if (abertas) return
+    setBuscandoVendas(true)
+    try { setAbertas(await getTabSales('open')) }
+    catch { setAbertas([]) }
+    finally { setBuscandoVendas(false) }
+  }
+
+  const vendasDe = (customerId: number) =>
+    (abertas ?? []).filter((v) => v.customerId === customerId && !v.paid)
+
   const [copiado, setCopiado] = useState(false)
 
   /**
@@ -154,175 +179,14 @@ export default function Caderneta({ products }: { products: Product[] }) {
 
   const totalAReceber = summary.reduce((s, r) => s + r.devendo, 0)
 
-  return (
-    <div className="space-y-4">
-      {/* ---------- Produção levada para vender ---------- */}
-      <Producao products={products} recarregar={versao} />
-
-      {/* ---------- Registrar venda ---------- */}
-      <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
-        <h3 className="font-display font-bold text-ink mb-3">Registrar venda</h3>
-
-        {/* Pessoa */}
-        <label className="block text-xs text-ink-2 mb-1">Pessoa</label>
-        <div className="mb-3">
-          <SeletorCliente
-            customers={customers}
-            value={pessoaId}
-            onChange={setPessoaId}
-            onCreate={async (nome) => {
-              const nova = await createTabCustomer(nome)
-              await carregar()
-              setPessoaId(nova.id)
-            }}
-            placeholder="Buscar pessoa pelo nome..."
-          />
-        </div>
-
-        {/* Cookies */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-          {products.map((p) => {
-            const q = qtds[p.id] ?? 0
-            return (
-              <div key={p.id} className={`rounded-lg border p-2 transition-colors ${
-                q > 0 ? 'border-brand bg-brand-soft' : 'border-line'
-              }`}>
-                <p className="text-xs font-semibold text-ink truncate">{p.name.replace('Cookie ', '')}</p>
-                <p className="text-[11px] text-ink-3 mb-1.5">{brl(p.price)}</p>
-                <div className="flex items-center justify-between">
-                  <button onClick={() => mudarQtd(p.id, -1)} disabled={q === 0}
-                    className="w-7 h-7 rounded-full bg-surface border border-line text-brand flex items-center justify-center disabled:opacity-30"
-                    aria-label={`Tirar 1 ${p.name}`}><Minus size={12} strokeWidth={2.5} /></button>
-                  <span className="text-sm font-bold tabular-nums w-5 text-center">{q}</span>
-                  <button onClick={() => mudarQtd(p.id, 1)}
-                    className="w-7 h-7 rounded-full bg-brand text-brand-ink flex items-center justify-center"
-                    aria-label={`Adicionar 1 ${p.name}`}><Plus size={12} strokeWidth={2.5} /></button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div>
-            <label className="block text-xs text-ink-2 mb-1">Data</label>
-            <input type="date" value={data} onChange={(e) => setData(e.target.value)}
-              className="border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand" />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-ink-2 cursor-pointer mt-5">
-            <input type="checkbox" checked={jaPago} onChange={(e) => setJaPago(e.target.checked)}
-              className="w-4 h-4 accent-success-solid" />
-            Já pagou
-          </label>
-          <div className="flex items-center gap-3 ml-auto mt-5">
-            <span className="font-bold text-brand text-lg tabular-nums">{brl(totalCarrinho)}</span>
-            <button onClick={registrar} disabled={salvando}
-              className="bg-brand hover:bg-brand-strong text-brand-ink font-bold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50">
-              {salvando ? 'Salvando...' : 'Registrar'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ---------- A receber ---------- */}
-      {summary.length > 0 && (
-        <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display font-bold text-ink">A receber</h3>
-            <span className="text-lg font-bold text-danger tabular-nums">{brl(totalAReceber)}</span>
-          </div>
-          <div className="space-y-1.5">
-            {summary.map((r) => (
-              <div key={r.customerId} className="flex items-center justify-between gap-2 py-1.5 border-b border-line-soft last:border-0">
-                <div className="min-w-0 flex items-center gap-2">
-                  <span className="text-sm text-ink truncate">{r.customerName}</span>
-                  <span className="text-[11px] text-ink-3 flex-shrink-0">({r.vendasAbertas}x)</span>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-sm font-bold text-ink tabular-nums">{brl(r.devendo)}</span>
-                  {r.phone ? (
-                    <a
-                      href={linkWhatsApp(r)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => { markCharged(r.customerId).catch(() => {}) }}
-                      title={`Abrir a conversa de ${r.customerName} no WhatsApp com a cobrança`}
-                      className="w-8 h-7 rounded-md border border-success-line bg-success-bg text-success hover:bg-success-bg flex items-center justify-center transition-colors">
-                      <WhatsAppIcon size={14} />
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => copiarCobranca(r)}
-                      title={`${r.customerName} não tem WhatsApp cadastrado — copiar a mensagem`}
-                      className={`w-8 h-7 rounded-md border flex items-center justify-center transition-colors ${
-                        copiadoId === r.customerId
-                          ? 'text-success bg-success-bg border-success-line'
-                          : 'text-brand bg-brand-soft hover:bg-brand-line border-brand-line'
-                      }`}>
-                      {copiadoId === r.customerId
-                        ? <Check size={14} strokeWidth={3} />
-                        : <MessageCircle size={14} />}
-                    </button>
-                  )}
-                  <button
-                    onClick={async () => {
-                      if (!confirm(`Marcar tudo de ${r.customerName} como pago (${brl(r.devendo)})?`)) return
-                      await payAllForCustomer(r.customerId); await carregar()
-                    }}
-                    className="text-xs font-semibold text-success bg-success-bg hover:bg-success-bg border border-success-line px-2.5 py-1 rounded-md transition-colors">
-                    Quitar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ---------- Histórico ---------- */}
-      <div>
-        <div className="flex gap-2 mb-3">
-          {([
-            { v: 'open' as TabStatus, label: 'A receber' },
-            { v: 'to_annotate' as TabStatus, label: 'Pagos a anotar' },
-            { v: 'annotated' as TabStatus, label: 'Pagos e anotados' },
-            { v: 'all' as TabStatus, label: 'Todos' },
-          ]).map(({ v, label }) => (
-            <button key={v} onClick={() => setFiltro(v)}
-              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                filtro === v ? 'bg-brand text-brand-ink border-brand'
-                             : 'bg-surface text-ink-2 border-line hover:border-brand'
-              }`}>{label}</button>
-          ))}
-        </div>
-
-        {/* Copiar e marcar como anotadas */}
-        {filtro === 'to_annotate' && sales.length > 0 && (
-          <div className="bg-info-bg border border-info-line rounded-xl p-3 mb-3">
-            <p className="text-xs text-info mb-2.5">
-              Copie no formato da sua planilha (da baixa mais antiga para a mais recente),
-              cole no Excel e depois marque todas como anotadas.
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={copiarParaPlanilha}
-                className="flex items-center gap-1.5 bg-info-solid hover:bg-info-solid/85 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
-                <ClipboardCopy size={13} /> {copiado ? 'Copiado!' : `Copiar ${sales.length} linha(s)`}
-              </button>
-              <button onClick={anotarTodas} disabled={anotandoTodas}
-                className="flex items-center gap-1.5 bg-surface hover:bg-canvas text-info border border-info-line text-xs font-bold px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
-                <NotebookPen size={13} /> {anotandoTodas ? 'Salvando...' : 'Marcar todas como anotadas'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex justify-center py-10"><Loader2 size={26} className="animate-spin text-brand" /></div>
-        ) : sales.length === 0 ? (
-          <p className="text-center text-ink-3 py-10 text-sm">Nenhuma venda aqui.</p>
-        ) : (
-          <div className="space-y-2">
-            {sales.map((v) => (
+  /**
+   * Cartao de uma venda com todas as acoes: dar baixa, anotar na planilha,
+   * abater um valor parcial e excluir. Fica dentro do dropdown de cada pessoa
+   * em "A receber", e tambem nas abas de pagos.
+   * E funcao comum (nao componente) de proposito: assim o React nao remonta
+   * o cartao a cada tecla digitada no campo de valor parcial.
+   */
+  const cartaoVenda = (v: TabSale) => (
               <div key={v.id} className={`bg-surface rounded-xl border p-3 shadow-card ${v.paid ? 'border-success-line' : 'border-line'}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
@@ -420,7 +284,210 @@ export default function Caderneta({ products }: { products: Product[] }) {
                   </div>
                 </div>
               </div>
-            ))}
+  )
+
+  return (
+    <div className="space-y-4">
+      {/* ---------- Produção levada para vender ---------- */}
+      <Producao products={products} recarregar={versao} />
+
+      {/* ---------- Registrar venda ---------- */}
+      <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
+        <h3 className="font-display font-bold text-ink mb-3">Registrar venda</h3>
+
+        {/* Pessoa */}
+        <label className="block text-xs text-ink-2 mb-1">Pessoa</label>
+        <div className="mb-3">
+          <SeletorCliente
+            customers={customers}
+            value={pessoaId}
+            onChange={setPessoaId}
+            onCreate={async (nome) => {
+              const nova = await createTabCustomer(nome)
+              await carregar()
+              setPessoaId(nova.id)
+            }}
+            placeholder="Buscar pessoa pelo nome..."
+          />
+        </div>
+
+        {/* Cookies */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+          {products.map((p) => {
+            const q = qtds[p.id] ?? 0
+            return (
+              <div key={p.id} className={`rounded-lg border p-2 transition-colors ${
+                q > 0 ? 'border-brand bg-brand-soft' : 'border-line'
+              }`}>
+                <p className="text-xs font-semibold text-ink truncate">{p.name.replace('Cookie ', '')}</p>
+                <p className="text-[11px] text-ink-3 mb-1.5">{brl(p.price)}</p>
+                <div className="flex items-center justify-between">
+                  <button onClick={() => mudarQtd(p.id, -1)} disabled={q === 0}
+                    className="w-7 h-7 rounded-full bg-surface border border-line text-brand flex items-center justify-center disabled:opacity-30"
+                    aria-label={`Tirar 1 ${p.name}`}><Minus size={12} strokeWidth={2.5} /></button>
+                  <span className="text-sm font-bold tabular-nums w-5 text-center">{q}</span>
+                  <button onClick={() => mudarQtd(p.id, 1)}
+                    className="w-7 h-7 rounded-full bg-brand text-brand-ink flex items-center justify-center"
+                    aria-label={`Adicionar 1 ${p.name}`}><Plus size={12} strokeWidth={2.5} /></button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <label className="block text-xs text-ink-2 mb-1">Data</label>
+            <input type="date" value={data} onChange={(e) => setData(e.target.value)}
+              className="border border-line rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand" />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-ink-2 cursor-pointer mt-5">
+            <input type="checkbox" checked={jaPago} onChange={(e) => setJaPago(e.target.checked)}
+              className="w-4 h-4 accent-success-solid" />
+            Já pagou
+          </label>
+          <div className="flex items-center gap-3 ml-auto mt-5">
+            <span className="font-bold text-brand text-lg tabular-nums">{brl(totalCarrinho)}</span>
+            <button onClick={registrar} disabled={salvando}
+              className="bg-brand hover:bg-brand-strong text-brand-ink font-bold px-5 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50">
+              {salvando ? 'Salvando...' : 'Registrar'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ---------- A receber ---------- */}
+      {summary.length > 0 && (
+        <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display font-bold text-ink">A receber</h3>
+            <span className="text-lg font-bold text-danger tabular-nums">{brl(totalAReceber)}</span>
+          </div>
+          <div className="space-y-1.5">
+            {summary.map((r) => {
+              const aberto = abertoId === r.customerId
+              const vendas = vendasDe(r.customerId)
+              return (
+              <div key={r.customerId} className="border-b border-line-soft last:border-0">
+                <div className="flex items-center justify-between gap-2 py-1.5">
+                  <button
+                    onClick={() => alternarVendas(r.customerId)}
+                    aria-expanded={aberto}
+                    title={`Ver as vendas de ${r.customerName}`}
+                    className="group min-w-0 flex items-center gap-1.5 text-left -ml-1 px-1 py-0.5 rounded-md hover:bg-surface-2 transition-colors">
+                    <ChevronRight
+                      size={13}
+                      className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
+                    <span className="text-sm text-ink truncate group-hover:text-brand transition-colors">{r.customerName}</span>
+                    <span className="text-[11px] text-ink-3 flex-shrink-0">({r.vendasAbertas}x)</span>
+                  </button>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-sm font-bold text-ink tabular-nums">{brl(r.devendo)}</span>
+                    {r.phone ? (
+                      <a
+                        href={linkWhatsApp(r)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => { markCharged(r.customerId).catch(() => {}) }}
+                        title={`Abrir a conversa de ${r.customerName} no WhatsApp com a cobrança`}
+                        className="w-8 h-7 rounded-md border border-success-line bg-success-bg text-success hover:bg-success-bg flex items-center justify-center transition-colors">
+                        <WhatsAppIcon size={14} />
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => copiarCobranca(r)}
+                        title={`${r.customerName} não tem WhatsApp cadastrado — copiar a mensagem`}
+                        className={`w-8 h-7 rounded-md border flex items-center justify-center transition-colors ${
+                          copiadoId === r.customerId
+                            ? 'text-success bg-success-bg border-success-line'
+                            : 'text-brand bg-brand-soft hover:bg-brand-line border-brand-line'
+                        }`}>
+                        {copiadoId === r.customerId
+                          ? <Check size={14} strokeWidth={3} />
+                          : <MessageCircle size={14} />}
+                      </button>
+                    )}
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Marcar tudo de ${r.customerName} como pago (${brl(r.devendo)})?`)) return
+                        await payAllForCustomer(r.customerId); await carregar()
+                      }}
+                      className="text-xs font-semibold text-success bg-success-bg hover:bg-success-bg border border-success-line px-2.5 py-1 rounded-md transition-colors">
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+
+                {aberto && (
+                  <div className="pb-2 pl-[18px] animate-fade-up">
+                    {buscandoVendas ? (
+                      <div className="py-2 flex justify-center">
+                        <Loader2 size={14} className="animate-spin text-brand" />
+                      </div>
+                    ) : vendas.length === 0 ? (
+                      <p className="text-[11px] text-ink-3 py-1.5">Nenhuma venda em aberto.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {vendas.map((v) => cartaoVenda(v))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ---------- Histórico ---------- */}
+      <div>
+        <div className="flex gap-2 mb-3">
+          {([
+            { v: 'open' as TabStatus, label: 'A receber' },
+            { v: 'to_annotate' as TabStatus, label: 'Pagos a anotar' },
+            { v: 'annotated' as TabStatus, label: 'Pagos e anotados' },
+            { v: 'all' as TabStatus, label: 'Todos' },
+          ]).map(({ v, label }) => (
+            <button key={v} onClick={() => setFiltro(v)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                filtro === v ? 'bg-brand text-brand-ink border-brand'
+                             : 'bg-surface text-ink-2 border-line hover:border-brand'
+              }`}>{label}</button>
+          ))}
+        </div>
+
+        {/* Copiar e marcar como anotadas */}
+        {filtro === 'to_annotate' && sales.length > 0 && (
+          <div className="bg-info-bg border border-info-line rounded-xl p-3 mb-3">
+            <p className="text-xs text-info mb-2.5">
+              Copie no formato da sua planilha (da baixa mais antiga para a mais recente),
+              cole no Excel e depois marque todas como anotadas.
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={copiarParaPlanilha}
+                className="flex items-center gap-1.5 bg-info-solid hover:bg-info-solid/85 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
+                <ClipboardCopy size={13} /> {copiado ? 'Copiado!' : `Copiar ${sales.length} linha(s)`}
+              </button>
+              <button onClick={anotarTodas} disabled={anotandoTodas}
+                className="flex items-center gap-1.5 bg-surface hover:bg-canvas text-info border border-info-line text-xs font-bold px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
+                <NotebookPen size={13} /> {anotandoTodas ? 'Salvando...' : 'Marcar todas como anotadas'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center py-10"><Loader2 size={26} className="animate-spin text-brand" /></div>
+        ) : filtro === 'open' ? (
+          <p className="text-center text-ink-3 py-8 text-sm">
+            As vendas em aberto ficam dentro de cada pessoa, ali em cima no “A receber”.
+          </p>
+        ) : sales.length === 0 ? (
+          <p className="text-center text-ink-3 py-10 text-sm">Nenhuma venda aqui.</p>
+        ) : (
+          <div className="space-y-2">
+            {sales.map((v) => cartaoVenda(v))}
           </div>
         )}
       </div>
