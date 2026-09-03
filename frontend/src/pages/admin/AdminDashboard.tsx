@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   getAdminOrders, updateOrderStatus,
-  getAdminProducts, updateProductStock, adjustProductStock,
+  getAdminProducts, updateProductStock, adjustProductStock, excluirPedido,
 } from '../../api/api'
 import { OrderResponse, OrderStatus, Product } from '../../types'
 import OrderStatusBadge from '../../components/OrderStatusBadge'
@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   RefreshCw, LogOut, Info, MapPin, FileText, QrCode, CreditCard, Banknote,
   Truck, Store, Plus, Minus, ShoppingBag, Package, Wallet, History, Users, Inbox,
-  TrendingUp, Calculator, ShoppingCart,
+  TrendingUp, Calculator, ShoppingCart, Trash2,
 } from 'lucide-react'
 import ThemeToggle from '../../components/ThemeToggle'
 
@@ -81,6 +81,22 @@ export default function AdminDashboard() {
     const updated = await updateOrderStatus(id, status)
     setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
     setRecarregarProducao((n) => n + 1)   // o resumo do que assar muda junto
+  }
+
+  /** Apaga o pedido. O banco devolve o estoque so quando o pedido ainda valia. */
+  const handleDeleteOrder = async (id: number, nome: string, total: number) => {
+    const valor = `R$ ${total.toFixed(2).replace('.', ',')}`
+    if (!confirm(`Excluir o pedido #${id} de ${nome} (${valor})?
+
+Isso apaga de vez, nao da para desfazer.`)) return
+    try {
+      const r = await excluirPedido(id)
+      setOrders((prev) => prev.filter((o) => o.id !== id))
+      setRecarregarProducao((n) => n + 1)
+      if (r?.estoque_devolvido) alert('Pedido excluido. As unidades voltaram para o estoque.')
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Nao deu para excluir')
+    }
   }
 
   const handleSetStock = async (id: number) => {
@@ -346,7 +362,7 @@ export default function AdminDashboard() {
                         </p>
                       )}
 
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-2 flex-wrap items-center">
                         {STATUS_ACTIONS[order.status]?.map((action) => (
                           <button
                             key={action.next}
@@ -356,6 +372,15 @@ export default function AdminDashboard() {
                             {action.label}
                           </button>
                         ))}
+                        {/* discreto e no canto: apagar e raro e nao tem volta */}
+                        <button
+                          onClick={() => handleDeleteOrder(order.id, order.customerName, order.totalAmount)}
+                          title={`Excluir o pedido #${order.id}`}
+                          aria-label={`Excluir o pedido #${order.id}`}
+                          className="ml-auto w-7 h-7 rounded-full text-ink-4 hover:bg-danger-bg hover:text-danger flex items-center justify-center transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </div>
                   )
