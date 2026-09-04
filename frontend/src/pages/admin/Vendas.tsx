@@ -589,7 +589,9 @@ export default function Vendas({ products }: { products: Product[] }) {
                     <span className="text-sm text-ink truncate group-hover:text-brand transition-colors">
                       {g.nome}
                     </span>
-                    <span className="text-[11px] text-ink-3 flex-shrink-0">({g.itens.length}x)</span>
+                    <span className="text-[11px] text-ink-3 flex-shrink-0">
+                      ({g.itens.length}x, pago de uma vez)
+                    </span>
                   </button>
                   <span className="text-sm font-bold text-ink tabular-nums flex-shrink-0 w-20 text-right">
                     {brl(g.total)}
@@ -602,6 +604,10 @@ export default function Vendas({ products }: { products: Product[] }) {
                     {g.itens.map((v) => (
                       <div key={`${v.origin}-${v.id}`}
                         className="flex items-center gap-2 text-xs rounded-lg px-2 py-1.5 bg-surface-2 border border-line-soft">
+                        <span className="text-[11px] text-ink-3 tabular-nums w-[52px] flex-shrink-0"
+                          title="dia em que o cookie foi vendido">
+                          {dataBR(v.saleDate ?? v.soldAt)}
+                        </span>
                         <span className="text-ink-2 flex-1 min-w-0 truncate">
                           {v.produtos.length > 0
                             ? v.produtos.map((i) => `${i.quantity} ${i.productName.replace('Cookie ', '')}`).join(', ')
