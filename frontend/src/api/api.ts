@@ -444,6 +444,8 @@ export const salvarVenda = (b: {
   id?: number; soldAt?: string | null; customerName: string; amount: number
   deliveryFee?: number; deliveryCost?: number; kind?: TipoVenda
   deliveryMode?: ModoEntrega; notes?: string | null
+  /** omita para nao mexer nos itens; [] limpa */
+  items?: { productId: number; quantity: number; unitPrice?: number }[]
 }) => post<VendaGeral>(`${PLAN}/vendas`, b)
 
 export const excluirVenda = (id: number) => del(`${PLAN}/vendas/${id}`)

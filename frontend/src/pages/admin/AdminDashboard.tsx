@@ -228,7 +228,7 @@ Isso apaga de vez, nao da para desfazer.`)) return
         {tab === 'historico' && <Historico />}
 
         {/* ── ABAS DO SISTEMA DA PLANILHA ── */}
-        {tab === 'vendas'  && <Vendas />}
+        {tab === 'vendas'  && <Vendas products={products} />}
         {tab === 'custos'  && <Custos />}
         {tab === 'compras' && <Compras />}
 
