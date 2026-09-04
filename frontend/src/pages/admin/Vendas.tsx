@@ -264,6 +264,11 @@ export default function Vendas({ products }: { products: Product[] }) {
                   )}
                 </p>
                 <p className="text-[11px] text-ink-3 truncate flex items-center gap-1.5">
+                  {v.saleDate && v.soldAt && v.saleDate !== v.soldAt && (
+                    <span className="text-ink-4 flex-shrink-0" title="dia em que voce deu baixa na Orvalho">
+                      pago {dataBR(v.soldAt)}
+                    </span>
+                  )}
                   {v.produtos.length > 0 && (
                     <span className="text-ink-2">
                       {v.produtos.map((i) => `${i.quantity} ${i.productName.replace('Cookie ', '')}`).join(', ')}
