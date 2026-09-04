@@ -287,7 +287,10 @@ export interface VendaGeral {
   /** de onde veio: lancada aqui ou uma venda ja quitada da Orvalho */
   origin: 'geral' | 'orvalho'
   id: number
+  /** quando o dinheiro entrou; nas da Orvalho e a data do pagamento */
   soldAt?: string
+  /** quando o cookie foi vendido de fato */
+  saleDate?: string
   customerName: string
   amount: number
   /** taxa cobrada do cliente */
@@ -318,6 +321,7 @@ export interface VendaAAnotar {
   origin: 'geral' | 'orvalho'
   id: number
   soldAt?: string
+  saleDate?: string
   customerName: string
   cookies: number
   taxa: number
