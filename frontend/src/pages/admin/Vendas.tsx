@@ -214,6 +214,7 @@ export default function Vendas({ products }: { products: Product[] }) {
   const linhas = useMemo(() => {
     const mapa = new Map<string, {
       chave: string; nome: string; ultima?: string
+      pagoEm?: string; pagamentosVariados: boolean
       itens: VendaGeral[]; total: number; orvalho: boolean
     }>()
     for (const v of d?.itens ?? []) {
@@ -222,22 +223,30 @@ export default function Vendas({ products }: { products: Product[] }) {
         g.itens.push(v)
         g.total += v.amount
         if (v.origin === 'orvalho') g.orvalho = true
-        if ((v.soldAt ?? '') > (g.ultima ?? '')) g.ultima = v.soldAt
+        const dataDaVenda = v.saleDate ?? v.soldAt
+        if ((dataDaVenda ?? '') > (g.ultima ?? '')) g.ultima = dataDaVenda
+        if (v.soldAt !== g.pagoEm) g.pagamentosVariados = true
+        if ((v.soldAt ?? '') > (g.pagoEm ?? '')) g.pagoEm = v.soldAt
       } else {
         mapa.set(v.customerName, {
-          chave: v.customerName, nome: v.customerName, ultima: v.soldAt,
+          chave: v.customerName, nome: v.customerName, ultima: v.saleDate ?? v.soldAt,
+          pagoEm: v.soldAt, pagamentosVariados: false,
           itens: [v], total: v.amount, orvalho: v.origin === 'orvalho',
         })
       }
     }
-    return [...mapa.values()].sort((a, b) => (b.ultima ?? '').localeCompare(a.ultima ?? ''))
+    return [...mapa.values()].sort((a, b) => (b.pagoEm ?? '').localeCompare(a.pagoEm ?? ''))
   }, [d])
 
 
   /** Uma linha de venda da lista. Funcao comum para dar para reusar dentro do grupo. */
   const linhaVenda = (v: VendaGeral) => (
             <div key={`${v.origin}-${v.id}`} className="flex items-center gap-2.5 px-3 py-2.5 group">
-              <span className="text-[11px] text-ink-3 tabular-nums w-[68px] flex-shrink-0">{dataBR(v.soldAt)}</span>
+              {/* a data da venda, nao a do pagamento: nas da Orvalho as duas diferem */}
+              <span className="text-[11px] text-ink-3 tabular-nums w-[68px] flex-shrink-0"
+                title="dia em que o cookie foi vendido">
+                {dataBR(v.saleDate ?? v.soldAt)}
+              </span>
 
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-ink truncate flex items-center gap-1.5">
@@ -585,8 +594,11 @@ export default function Vendas({ products }: { products: Product[] }) {
                   <span className="text-sm text-ink truncate flex-1 min-w-0 group-hover:text-brand transition-colors">
                     {g.nome}
                   </span>
-                  <span className="text-[11px] text-ink-3 flex-shrink-0 tabular-nums">
-                    {g.itens.length}x · última {dataBR(g.ultima)}
+                  <span className="text-xs text-ink-2 flex-shrink-0 tabular-nums">
+                    {g.itens.length}x ·{' '}
+                    <span className="font-semibold">
+                      {g.pagamentosVariados ? 'último pgto' : 'pago dia'} {dataBR(g.pagoEm)}
+                    </span>
                   </span>
                   <span className="text-sm font-bold text-ink tabular-nums flex-shrink-0 w-20 text-right">
                     {brl(g.total)}
