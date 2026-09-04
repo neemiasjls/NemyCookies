@@ -205,33 +205,34 @@ export default function Vendas({ products }: { products: Product[] }) {
   }
 
   /**
-   * Junta as vendas da Orvalho da mesma pessoa no mesmo dia numa linha so.
-   * Elas nascem repetidas de proposito: quando voce quita a conta de alguem,
-   * todas as vendas dela ganham a mesma data de pagamento e a lista enche de
-   * "Ligia, Ligia, Ligia". As vendas lancadas aqui nunca se juntam — duas
-   * vendas para a mesma pessoa no mesmo dia sao coisas diferentes.
+   * Uma linha por pessoa, igual ao "A receber" da Orvalho. A lista corrida
+   * enchia de nome repetido: a mesma cliente aparecia 4 vezes seguidas.
+   * Cada grupo abre e mostra venda por venda, com a data em que o cookie saiu.
+   * A ordem e pela venda mais recente de cada um, para o movimento novo ficar
+   * em cima.
    */
   const linhas = useMemo(() => {
     const mapa = new Map<string, {
-      chave: string; nome: string; data?: string
+      chave: string; nome: string; ultima?: string
       itens: VendaGeral[]; total: number; orvalho: boolean
     }>()
     for (const v of d?.itens ?? []) {
-      const juntavel = v.origin === 'orvalho'
-      const chave = juntavel
-        ? 'orvalho|' + v.customerName + '|' + (v.soldAt ?? '')
-        : 'geral|' + v.id
-      const g = mapa.get(chave)
-      if (g) { g.itens.push(v); g.total += v.amount }
-      else {
-        mapa.set(chave, {
-          chave, nome: v.customerName, data: v.soldAt,
-          itens: [v], total: v.amount, orvalho: juntavel,
+      const g = mapa.get(v.customerName)
+      if (g) {
+        g.itens.push(v)
+        g.total += v.amount
+        if (v.origin === 'orvalho') g.orvalho = true
+        if ((v.soldAt ?? '') > (g.ultima ?? '')) g.ultima = v.soldAt
+      } else {
+        mapa.set(v.customerName, {
+          chave: v.customerName, nome: v.customerName, ultima: v.soldAt,
+          itens: [v], total: v.amount, orvalho: v.origin === 'orvalho',
         })
       }
     }
-    return [...mapa.values()]
+    return [...mapa.values()].sort((a, b) => (b.ultima ?? '').localeCompare(a.ultima ?? ''))
   }, [d])
+
 
   /** Uma linha de venda da lista. Funcao comum para dar para reusar dentro do grupo. */
   const linhaVenda = (v: VendaGeral) => (
@@ -567,55 +568,34 @@ export default function Vendas({ products }: { products: Product[] }) {
       ) : (
         <div className="bg-surface rounded-xl border border-line shadow-card divide-y divide-line-soft overflow-hidden">
           {linhas.map((g) => {
-            // uma venda so: mostra a linha direto, sem cerimonia
-            if (g.itens.length === 1) return linhaVenda(g.itens[0])
-
             const aberto = grupoAberto === g.chave
             return (
               <div key={g.chave}>
-                <div className="flex items-center gap-2.5 px-3 py-2.5">
-                  <span className="text-[11px] text-ink-3 tabular-nums w-[68px] flex-shrink-0">
-                    {dataBR(g.data)}
-                  </span>
-                  <button
-                    onClick={() => setGrupoAberto(aberto ? null : g.chave)}
-                    aria-expanded={aberto}
-                    className="group min-w-0 flex-1 flex items-center gap-1.5 text-left -ml-1 px-1 py-0.5 rounded-md hover:bg-surface-2 transition-colors">
-                    <ChevronRight size={13}
-                      className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
+                <button
+                  onClick={() => setGrupoAberto(aberto ? null : g.chave)}
+                  aria-expanded={aberto}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-surface-2 transition-colors group">
+                  <ChevronRight size={14}
+                    className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
+                  {g.orvalho && (
                     <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-orvalho-line bg-orvalho-bg text-orvalho">
                       Orvalho
                     </span>
-                    <span className="text-sm text-ink truncate group-hover:text-brand transition-colors">
-                      {g.nome}
-                    </span>
-                    <span className="text-[11px] text-ink-3 flex-shrink-0">
-                      ({g.itens.length}x, pago de uma vez)
-                    </span>
-                  </button>
+                  )}
+                  <span className="text-sm text-ink truncate flex-1 min-w-0 group-hover:text-brand transition-colors">
+                    {g.nome}
+                  </span>
+                  <span className="text-[11px] text-ink-3 flex-shrink-0 tabular-nums">
+                    {g.itens.length}x · última {dataBR(g.ultima)}
+                  </span>
                   <span className="text-sm font-bold text-ink tabular-nums flex-shrink-0 w-20 text-right">
                     {brl(g.total)}
                   </span>
-                  <span className="w-[52px] flex-shrink-0" />
-                </div>
+                </button>
 
                 {aberto && (
-                  <div className="pb-2 pl-8 pr-3 animate-fade-up space-y-1">
-                    {g.itens.map((v) => (
-                      <div key={`${v.origin}-${v.id}`}
-                        className="flex items-center gap-2 text-xs rounded-lg px-2 py-1.5 bg-surface-2 border border-line-soft">
-                        <span className="text-[11px] text-ink-3 tabular-nums w-[52px] flex-shrink-0"
-                          title="dia em que o cookie foi vendido">
-                          {dataBR(v.saleDate ?? v.soldAt)}
-                        </span>
-                        <span className="text-ink-2 flex-1 min-w-0 truncate">
-                          {v.produtos.length > 0
-                            ? v.produtos.map((i) => `${i.quantity} ${i.productName.replace('Cookie ', '')}`).join(', ')
-                            : 'sem detalhe de sabor'}
-                        </span>
-                        <span className="font-bold text-ink tabular-nums flex-shrink-0">{brl(v.amount)}</span>
-                      </div>
-                    ))}
+                  <div className="pb-2 pl-7 pr-2 animate-fade-up space-y-1.5 bg-surface-2 border-t border-line-soft">
+                    {g.itens.map((v) => linhaVenda(v))}
                   </div>
                 )}
               </div>

@@ -145,6 +145,34 @@ export default function Caderneta({ products }: { products: Product[] }) {
   // Copiar para a planilha e marcar como anotada agora vivem na aba Vendas,
   // onde a lista cobre todas as vendas e nao so as da Orvalho.
 
+  /**
+   * A lista de baixo tambem agrupa por pessoa, igual ao "A receber": sem isso
+   * a mesma cliente aparecia quatro vezes seguidas e ficava dificil achar
+   * alguem. Cada grupo mostra o que ela ainda deve e quantas faltam anotar,
+   * e abre nos cartoes de sempre.
+   */
+  const porCliente = useMemo(() => {
+    const mapa = new Map<string, {
+      nome: string; itens: TabSale[]; total: number
+      aReceber: number; faltaAnotar: number; ultima: string
+    }>()
+    for (const v of sales) {
+      const g = mapa.get(v.customerName) ?? {
+        nome: v.customerName, itens: [], total: 0,
+        aReceber: 0, faltaAnotar: 0, ultima: '',
+      }
+      g.itens.push(v)
+      g.total += v.total
+      if (!v.paid) g.aReceber += v.total - v.paidAmount
+      if (v.paid && !v.annotated) g.faltaAnotar += 1
+      if (v.soldAt > g.ultima) g.ultima = v.soldAt
+      mapa.set(v.customerName, g)
+    }
+    return [...mapa.values()].sort((a, b) => b.ultima.localeCompare(a.ultima))
+  }, [sales])
+
+  const [clienteAberto, setClienteAberto] = useState<string | null>(null)
+
   const totalAReceber = summary.reduce((s, r) => s + r.devendo, 0)
 
   /**
@@ -433,7 +461,47 @@ export default function Caderneta({ products }: { products: Product[] }) {
           <p className="text-center text-ink-3 py-10 text-sm">Nenhuma venda aqui.</p>
         ) : (
           <div className="space-y-2">
-            {sales.map((v) => cartaoVenda(v))}
+            {porCliente.map((g) => {
+              const aberto = clienteAberto === g.nome
+              return (
+                <div key={g.nome} className="bg-surface rounded-xl border border-line shadow-card overflow-hidden">
+                  <button
+                    onClick={() => setClienteAberto(aberto ? null : g.nome)}
+                    aria-expanded={aberto}
+                    className="w-full flex items-center gap-2.5 p-3 text-left hover:bg-surface-2 transition-colors group">
+                    <ChevronRight size={14}
+                      className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
+                    <span className="font-semibold text-ink text-sm truncate flex-1 min-w-0 group-hover:text-brand transition-colors">
+                      {g.nome}
+                    </span>
+                    {g.aReceber > 0 && (
+                      <span className="flex-shrink-0 text-[11px] font-bold text-brand bg-brand-soft px-2 py-0.5 rounded-full tabular-nums">
+                        deve {brl(g.aReceber)}
+                      </span>
+                    )}
+                    {g.faltaAnotar > 0 && (
+                      <span className="flex-shrink-0 text-[11px] font-bold text-info bg-info-bg px-2 py-0.5 rounded-full tabular-nums">
+                        {g.faltaAnotar} a anotar
+                      </span>
+                    )}
+                    <span className="text-[11px] text-ink-3 flex-shrink-0 tabular-nums">
+                      {g.itens.length}x
+                    </span>
+                    <span className="font-bold text-brand tabular-nums flex-shrink-0 w-20 text-right">
+                      {brl(g.total)}
+                    </span>
+                  </button>
+
+                  {aberto && (
+                    <div className="p-3 pt-0 space-y-2 animate-fade-up bg-surface-2 border-t border-line-soft">
+                      <div className="pt-2 space-y-2">
+                        {g.itens.map((v) => cartaoVenda(v))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
