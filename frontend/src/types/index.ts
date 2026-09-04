@@ -313,6 +313,24 @@ export interface ListaVendas {
   porOrigem: { origin: string; vendas: number; total: number }[]
 }
 
+/** Uma linha esperando para ir para a sua planilha. */
+export interface VendaAAnotar {
+  origin: 'geral' | 'orvalho'
+  id: number
+  soldAt?: string
+  customerName: string
+  cookies: number
+  taxa: number
+  /** cookies + taxa: e assim que a venda entra na planilha */
+  valor: number
+}
+
+export interface ListaAAnotar {
+  itens: VendaAAnotar[]
+  quantas: number
+  total: number
+}
+
 export interface ResumoFinanceiro {
   receita: number
   cookies: number

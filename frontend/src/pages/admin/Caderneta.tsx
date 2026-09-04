@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   getTabSales, getTabSummary, getTabCustomers, createTabSale, createTabCustomer,
   setTabSalePaid, deleteTabSale, addTabPayment,
-  payAllForCustomer, setTabSaleAnnotated, annotateAllTabSales, markCharged, TabStatus,
+  payAllForCustomer, setTabSaleAnnotated, markCharged, TabStatus,
 } from '../../api/api'
 import { Product, TabSale, TabSummaryRow, TabCustomer } from '../../types'
 import SeletorCliente from '../../components/SeletorCliente'
@@ -10,7 +10,7 @@ import Producao from './Producao'
 import WhatsAppIcon from '../../components/WhatsAppIcon'
 import {
   Plus, Minus, Check, Trash2, Undo2, Loader2, CalendarDays,
-  NotebookPen, ClipboardCopy, HandCoins, X, MessageCircle, ChevronRight,
+  NotebookPen, HandCoins, X, MessageCircle, ChevronRight,
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -142,40 +142,8 @@ export default function Caderneta({ products }: { products: Product[] }) {
   const vendasDe = (customerId: number) =>
     (abertas ?? []).filter((v) => v.customerId === customerId && !v.paid)
 
-  const [copiado, setCopiado] = useState(false)
-
-  /**
-   * Formato da planilha: "cookie <nome>"  <TAB>  valor
-   * Ordem: da baixa mais antiga para a mais recente, igual ao lancamento.
-   */
-  const copiarParaPlanilha = async () => {
-    const linhas = [...sales]
-      .sort((a, b) => (a.paidAt ?? '').localeCompare(b.paidAt ?? ''))
-      .map((v) => `cookie ${v.customerName.toLowerCase()}\t${v.total.toFixed(2).replace('.', ',')}`)
-      .join('\n')
-    try {
-      await navigator.clipboard.writeText(linhas)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 2500)
-    } catch {
-      alert('Nao foi possivel copiar. Copie manualmente:\n\n' + linhas)
-    }
-  }
-
-  const [anotandoTodas, setAnotandoTodas] = useState(false)
-
-  /** Marca de uma vez todas as vendas pagas que faltam anotar */
-  const anotarTodas = async () => {
-    if (!confirm(`Marcar as ${sales.length} venda(s) desta lista como anotadas na planilha?`)) return
-    setAnotandoTodas(true)
-    try {
-      const { anotadas } = await annotateAllTabSales()
-      await carregar()
-      alert(`${anotadas} venda(s) marcada(s) como anotadas.`)
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Erro ao marcar')
-    } finally { setAnotandoTodas(false) }
-  }
+  // Copiar para a planilha e marcar como anotada agora vivem na aba Vendas,
+  // onde a lista cobre todas as vendas e nao so as da Orvalho.
 
   const totalAReceber = summary.reduce((s, r) => s + r.devendo, 0)
 
@@ -445,9 +413,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
         <div className="flex gap-2 mb-3">
           {([
             { v: 'open' as TabStatus, label: 'A receber' },
-            { v: 'to_annotate' as TabStatus, label: 'Pagos a anotar' },
-            { v: 'annotated' as TabStatus, label: 'Pagos e anotados' },
-            { v: 'all' as TabStatus, label: 'Todos' },
+            { v: 'all' as TabStatus, label: 'Todas' },
           ]).map(({ v, label }) => (
             <button key={v} onClick={() => setFiltro(v)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
@@ -456,26 +422,6 @@ export default function Caderneta({ products }: { products: Product[] }) {
               }`}>{label}</button>
           ))}
         </div>
-
-        {/* Copiar e marcar como anotadas */}
-        {filtro === 'to_annotate' && sales.length > 0 && (
-          <div className="bg-info-bg border border-info-line rounded-xl p-3 mb-3">
-            <p className="text-xs text-info mb-2.5">
-              Copie no formato da sua planilha (da baixa mais antiga para a mais recente),
-              cole no Excel e depois marque todas como anotadas.
-            </p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={copiarParaPlanilha}
-                className="flex items-center gap-1.5 bg-info-solid hover:bg-info-solid/85 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
-                <ClipboardCopy size={13} /> {copiado ? 'Copiado!' : `Copiar ${sales.length} linha(s)`}
-              </button>
-              <button onClick={anotarTodas} disabled={anotandoTodas}
-                className="flex items-center gap-1.5 bg-surface hover:bg-canvas text-info border border-info-line text-xs font-bold px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
-                <NotebookPen size={13} /> {anotandoTodas ? 'Salvando...' : 'Marcar todas como anotadas'}
-              </button>
-            </div>
-          </div>
-        )}
 
         {loading ? (
           <div className="flex justify-center py-10"><Loader2 size={26} className="animate-spin text-brand" /></div>

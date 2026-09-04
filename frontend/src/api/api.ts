@@ -1,7 +1,7 @@
 import {
   OrderResponse, OrderStatus, Product, Category,
   PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, ProductionSummary, Producao,
-  AuditEntry, Custos, ListaCompras, ListaVendas, ResumoFinanceiro,
+  AuditEntry, Custos, ListaCompras, ListaVendas, ResumoFinanceiro, ListaAAnotar,
   Compra, VendaGeral, CategoriaCompra, TipoVenda, ModoEntrega,
 } from '../types'
 
@@ -449,3 +449,12 @@ export const salvarVenda = (b: {
 }) => post<VendaGeral>(`${PLAN}/vendas`, b)
 
 export const excluirVenda = (id: number) => del(`${PLAN}/vendas/${id}`)
+
+/* ---------- A anotar na planilha (as duas origens) ---------- */
+export const getAAnotar = () => requestAdmin<ListaAAnotar>(`${PLAN}/a-anotar`)
+
+export const anotarTodasAsVendas = () =>
+  post<{ anotadas: number }>(`${PLAN}/a-anotar/todas`, {})
+
+export const marcarAnotada = (origem: 'geral' | 'orvalho', id: number, annotated: boolean) =>
+  patch(`${PLAN}/a-anotar/${origem}/${id}`, { annotated })
