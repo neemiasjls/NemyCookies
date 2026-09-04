@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { getVendas, salvarVenda, excluirVenda, getResumoFinanceiro } from '../../api/api'
-import { ListaVendas, VendaGeral, TipoVenda, ModoEntrega, ResumoFinanceiro } from '../../types'
+import { ListaVendas, VendaGeral, TipoVenda, ModoEntrega, ResumoFinanceiro, Product } from '../../types'
 import { taxaDoPedido, FRETE_GRATIS_A_PARTIR_DE, GASTO_MEDIO_ENTREGA } from '../../entrega'
-import { Loader2, Plus, Trash2, Pencil, Truck, Store } from 'lucide-react'
+import { Loader2, Plus, Minus, Trash2, Pencil, Truck, Store } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 const dec = (v: number) => String(v).replace('.', ',')
@@ -20,11 +20,16 @@ type Rascunho = {
   id?: number; soldAt: string; customerName: string; amount: string
   deliveryFee: string; deliveryCost: string; deliveryMode: ModoEntrega
   kind: TipoVenda; notes: string
+  /** quantos de cada sabor, por id do produto */
+  qtds: Record<number, number>
+  /** true quando voce digitou o valor na mao, e ele para de seguir os sabores */
+  valorManual: boolean
 }
 const vazio = (): Rascunho => ({
   id: undefined, soldAt: hoje(), customerName: '', amount: '',
   deliveryFee: '', deliveryCost: dec(GASTO_MEDIO_ENTREGA),
   deliveryMode: 'entrega', kind: 'venda', notes: '',
+  qtds: {}, valorManual: false,
 })
 
 /**
@@ -32,7 +37,7 @@ const vazio = (): Rascunho => ({
  * A Orvalho entra sozinha, mas so depois de quitada — fiado ainda nao e dinheiro.
  * Essas linhas levam o selo da farmacia e sao editadas la, na caderneta.
  */
-export default function Vendas() {
+export default function Vendas({ products }: { products: Product[] }) {
   const [d, setD] = useState<ListaVendas | null>(null)
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -53,13 +58,33 @@ export default function Vendas() {
 
   const abrir = (r: Rascunho, manual: boolean) => { setForm(r); setTaxaManual(manual) }
 
+  const somaDosSabores = (qtds: Record<number, number>) =>
+    Object.entries(qtds).reduce((soma, [id, q]) => {
+      const p = products.find((x) => x.id === Number(id))
+      return soma + (p ? p.price * q : 0)
+    }, 0)
+
+  /** Muda um sabor: o valor acompanha, a nao ser que voce ja tenha digitado na mao. */
+  const mudarSabor = (produtoId: number, delta: number) => {
+    if (!form) return
+    const nova = Math.max(0, (form.qtds[produtoId] ?? 0) + delta)
+    const qtds = { ...form.qtds }
+    if (nova === 0) delete qtds[produtoId]; else qtds[produtoId] = nova
+    const total = somaDosSabores(qtds)
+    const amount = form.valorManual ? form.amount : (total > 0 ? dec(total) : '')
+    const taxa = form.deliveryMode === 'retirada' || taxaManual
+      ? form.deliveryFee
+      : dec(taxaDoPedido(paraNumero(amount)))
+    setForm({ ...form, qtds, amount, deliveryFee: taxa })
+  }
+
   /** Muda o valor dos cookies e, se voce ainda nao mexeu na taxa, refaz a taxa. */
   const mudarValor = (txt: string) => {
     if (!form) return
     const taxa = form.deliveryMode === 'retirada' || taxaManual
       ? form.deliveryFee
       : dec(taxaDoPedido(paraNumero(txt)))
-    setForm({ ...form, amount: txt, deliveryFee: taxa })
+    setForm({ ...form, amount: txt, deliveryFee: taxa, valorManual: true })
   }
 
   /** Retirada zera taxa e combustivel; entrega volta a sugerir os dois. */
@@ -87,6 +112,7 @@ export default function Vendas() {
         id: form.id, soldAt: form.soldAt || null, customerName: form.customerName, amount: v,
         deliveryFee: paraNumero(form.deliveryFee), deliveryCost: paraNumero(form.deliveryCost),
         deliveryMode: form.deliveryMode, kind: form.kind, notes: form.notes || null,
+        items: Object.entries(form.qtds).map(([id, q]) => ({ productId: Number(id), quantity: q })),
       })
       setForm(null); await carregar()
     } catch (e) { alert(e instanceof Error ? e.message : 'Erro ao salvar') }
@@ -101,6 +127,10 @@ export default function Vendas() {
       deliveryFee: v.deliveryFee ? dec(v.deliveryFee) : '0',
       deliveryCost: v.deliveryCost ? dec(v.deliveryCost) : '0',
       deliveryMode: v.deliveryMode, kind: v.kind, notes: v.notes ?? '',
+      qtds: Object.fromEntries(
+        v.produtos.filter((i) => i.productId !== null)
+          .map((i) => [i.productId as number, i.quantity])),
+      valorManual: true,   // venda que ja existe: respeita o valor que voce escolheu
     }, true)   // venda que ja existe: nao mexe na taxa que voce escolheu
   }
 
@@ -113,6 +143,7 @@ export default function Vendas() {
 
   const retirada = form?.deliveryMode === 'retirada'
   const valorForm = paraNumero(form?.amount ?? '')
+  const somaSabores = form ? somaDosSabores(form.qtds) : 0
 
   return (
     <div className="space-y-4">
@@ -158,6 +189,41 @@ export default function Vendas() {
             <input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })}
               placeholder="para quem"
               className="col-span-1 sm:col-span-3 text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink" />
+          </div>
+
+          {/* Quais cookies sairam. O valor abaixo acompanha sozinho,
+              mas continua editavel para quando voce cobra diferente. */}
+          <div className="mt-2">
+            <p className="text-[11px] text-ink-3 mb-1.5">Cookies vendidos</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {products.map((p) => {
+                const q = form.qtds[p.id] ?? 0
+                return (
+                  <div key={p.id}
+                    className={`rounded-lg border p-1.5 transition-colors ${
+                      q > 0 ? 'border-brand bg-brand-soft' : 'border-line'
+                    }`}>
+                    <p className="text-[11px] font-semibold text-ink truncate">
+                      {p.name.replace('Cookie ', '')}
+                      <span className="text-ink-3 font-normal"> · {brl(p.price)}</span>
+                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <button onClick={() => mudarSabor(p.id, -1)} disabled={q === 0}
+                        aria-label={`Tirar 1 ${p.name}`}
+                        className="w-6 h-6 rounded-full border border-line text-brand flex items-center justify-center disabled:opacity-30">
+                        <Minus size={11} strokeWidth={2.5} />
+                      </button>
+                      <span className="text-sm font-bold tabular-nums text-ink w-5 text-center">{q}</span>
+                      <button onClick={() => mudarSabor(p.id, 1)}
+                        aria-label={`Adicionar 1 ${p.name}`}
+                        className="w-6 h-6 rounded-full bg-brand text-brand-ink flex items-center justify-center">
+                        <Plus size={11} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
           {/* Entrega ou retirada — muda o que o resto do formulario cobra */}
@@ -212,6 +278,13 @@ export default function Vendas() {
             placeholder="observação (opcional)"
             className="w-full mt-2 text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink" />
 
+          {somaSabores > 0 && Math.abs(somaSabores - valorForm) > 0.009 && (
+            <p className="text-[11px] text-warn mt-2">
+              Os sabores somam {brl(somaSabores)}, mas você pôs {brl(valorForm)}.
+              Tudo bem — vale o que você digitou.
+            </p>
+          )}
+
           <p className="text-[11px] text-ink-3 mt-2">
             {retirada
               ? 'Retirada não tem taxa nem gasto de combustível — os dois ficam zerados.'
@@ -263,6 +336,11 @@ export default function Vendas() {
                   )}
                 </p>
                 <p className="text-[11px] text-ink-3 truncate flex items-center gap-1.5">
+                  {v.produtos.length > 0 && (
+                    <span className="text-ink-2">
+                      {v.produtos.map((i) => `${i.quantity} ${i.productName.replace('Cookie ', '')}`).join(', ')}
+                    </span>
+                  )}
                   {v.deliveryMode === 'retirada' ? (
                     <span className="inline-flex items-center gap-0.5"><Store size={10} /> retirada</span>
                   ) : v.deliveryFee > 0 ? (

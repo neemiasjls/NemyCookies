@@ -275,6 +275,14 @@ export interface ListaCompras {
 export type TipoVenda = 'venda' | 'consumo_proprio' | 'brinde'
 export type ModoEntrega = 'entrega' | 'retirada'
 
+/** Um sabor dentro de uma venda geral. */
+export interface ItemVenda {
+  productId: number | null
+  productName: string
+  quantity: number
+  unitPrice: number
+}
+
 export interface VendaGeral {
   /** de onde veio: lancada aqui ou uma venda ja quitada da Orvalho */
   origin: 'geral' | 'orvalho'
@@ -290,6 +298,8 @@ export interface VendaGeral {
   deliveryMode: ModoEntrega
   kind: TipoVenda
   notes?: string
+  /** os cookies da venda; vazio nas 180 que vieram da planilha, que so tinham o total */
+  produtos: ItemVenda[]
 }
 
 export interface ListaVendas {
