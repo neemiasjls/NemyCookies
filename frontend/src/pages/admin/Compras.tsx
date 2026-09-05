@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { getCompras, salvarCompra, excluirCompra } from '../../api/api'
 import { ListaCompras, Compra, CategoriaCompra } from '../../types'
 import { Loader2, Plus, Trash2, Pencil, ShoppingCart, Fuel } from 'lucide-react'
+import CampoComSugestoes from '../../components/CampoComSugestoes'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 const dataBR = (iso?: string) => dataBR0(iso, '—')
@@ -147,14 +148,13 @@ export default function Compras() {
             <input value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })}
               placeholder="R$ pago" inputMode="decimal"
               className="text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink" />
-            {/* Lista os mercados que voce ja usou, mas continua aceitando
-                digitar um novo: nao precisa de um botao "adicionar" a parte. */}
-            <input value={form.market} onChange={(e) => setForm({ ...form, market: e.target.value })}
-              list="mercados-usados" placeholder="mercado" autoComplete="off"
-              className="text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink" />
-            <datalist id="mercados-usados">
-              {(d?.mercados ?? []).map((m) => <option key={m} value={m} />)}
-            </datalist>
+            {/* Escolhe da lista ou digita um novo: o mercado novo aparece
+                sozinho na proxima compra, sem botao de cadastrar. */}
+            <CampoComSugestoes
+              valor={form.market}
+              aoMudar={(v) => setForm({ ...form, market: v })}
+              sugestoes={d?.mercados ?? []}
+              placeholder="mercado" />
             <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as CategoriaCompra })}
               className="col-span-2 sm:col-span-4 text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink">
               {CATEGORIAS.map((c) => <option key={c.v} value={c.v}>{c.label}</option>)}
