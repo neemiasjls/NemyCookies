@@ -158,27 +158,41 @@ export default function Vendas({ products }: { products: Product[] }) {
   }
 
   /**
-   * Agrupa o que falta anotar por pessoa, so para a tela: fica mais facil
-   * conferir do que uma lista corrida. A copia continua uma linha por venda.
+   * Agrupa o que falta anotar por pessoa. Uma linha por pessoa, com tudo
+   * somado — inclusive a taxa de entrega, que faz parte do valor da venda.
+   * A ordem e da compra mais antiga para a mais nova, igual ao lancamento.
    */
   const porPessoa = useMemo(() => {
-    const mapa = new Map<string, { nome: string; itens: VendaAAnotar[]; total: number; temOrvalho: boolean }>()
+    const mapa = new Map<string, {
+      nome: string; itens: VendaAAnotar[]; total: number
+      taxas: number; temOrvalho: boolean; maisAntiga: string
+    }>()
     for (const v of aAnotar?.itens ?? []) {
-      const g = mapa.get(v.customerName) ?? { nome: v.customerName, itens: [], total: 0, temOrvalho: false }
+      const g = mapa.get(v.customerName) ?? {
+        nome: v.customerName, itens: [], total: 0,
+        taxas: 0, temOrvalho: false, maisAntiga: '9999',
+      }
       g.itens.push(v)
       g.total += v.valor
+      g.taxas += v.taxa
       if (v.origin === 'orvalho') g.temOrvalho = true
+      const quando = v.saleDate ?? v.soldAt ?? ''
+      if (quando && quando < g.maisAntiga) g.maisAntiga = quando
       mapa.set(v.customerName, g)
     }
-    return [...mapa.values()].sort((a, b) => b.total - a.total)
+    return [...mapa.values()].sort((a, b) => a.maisAntiga.localeCompare(b.maisAntiga))
   }, [aAnotar])
 
-  /** Formato da planilha: "cookie <nome>" + TAB + valor, da mais antiga para a mais nova. */
+  /**
+   * Formato da planilha: "cookie <nome>" + TAB + valor.
+   * Uma linha por pessoa, com as vendas dela somadas e a taxa de entrega
+   * ja dentro do valor.
+   */
   const copiarParaPlanilha = async () => {
     const TAB = String.fromCharCode(9)
     const QUEBRA = String.fromCharCode(10)
-    const linhas = (aAnotar?.itens ?? [])
-      .map((v) => 'cookie ' + v.customerName.toLowerCase() + TAB + v.valor.toFixed(2).replace('.', ','))
+    const linhas = porPessoa
+      .map((g) => 'cookie ' + g.nome.toLowerCase() + TAB + g.total.toFixed(2).replace('.', ','))
       .join(QUEBRA)
     try {
       await navigator.clipboard.writeText(linhas)
@@ -345,7 +359,7 @@ export default function Vendas({ products }: { products: Product[] }) {
               <button onClick={copiarParaPlanilha}
                 className="flex items-center gap-1.5 bg-info-solid hover:bg-info-solid/85 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors">
                 {copiado ? <Check size={13} strokeWidth={3} /> : <ClipboardCopy size={13} />}
-                {copiado ? 'Copiado!' : `Copiar ${aAnotar.quantas} linha(s)`}
+                {copiado ? 'Copiado!' : `Copiar ${porPessoa.length} linha(s)`}
               </button>
               <button onClick={anotarTodas} disabled={anotando}
                 className="flex items-center gap-1.5 bg-surface hover:bg-canvas text-info border border-info-line text-xs font-bold px-3 py-2 rounded-lg transition-colors disabled:opacity-50">
@@ -369,7 +383,9 @@ export default function Vendas({ products }: { products: Product[] }) {
                       <span className="text-sm text-ink truncate group-hover:text-info transition-colors">
                         {g.nome}
                       </span>
-                      <span className="text-[11px] text-ink-3 flex-shrink-0">({g.itens.length}x)</span>
+                      <span className="text-[11px] text-ink-3 flex-shrink-0">
+                        ({g.itens.length}x{g.taxas > 0 ? `, ${brl(g.taxas)} de entrega` : ''})
+                      </span>
                       {g.temOrvalho && (
                         <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-orvalho-line bg-orvalho-bg text-orvalho">
                           Orvalho
@@ -421,8 +437,8 @@ export default function Vendas({ products }: { products: Product[] }) {
           </div>
 
           <p className="px-4 py-2.5 text-[11px] text-ink-2 bg-surface-2 border-t border-line-soft">
-            O botão copia uma linha por venda, da mais antiga para a mais nova — do jeito
-            que a sua planilha espera. O agrupamento acima é só para conferir mais fácil.
+            O botão copia uma linha por pessoa, com as vendas dela somadas e a taxa de
+            entrega já dentro do valor. A ordem é da compra mais antiga para a mais nova.
           </p>
         </div>
       )}
