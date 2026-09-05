@@ -162,6 +162,8 @@ export const createManualOrder = (data: {
   customerId: number
   items: { productId: number; quantity: number }[]
   notes?: string
+  /** dia do pedido; em branco usa hoje */
+  soldAt?: string
 }): Promise<OrderResponse> =>
   requestAdmin(`${FN}/admin/orders/manual`, { method: 'POST', body: JSON.stringify(data) })
     .then(toOrder)

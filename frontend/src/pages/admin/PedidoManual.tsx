@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getTabCustomers, createManualOrder, getProductionSummary } from '../../api/api'
+import { hoje } from '../../data'
 import { Product, TabCustomer, ProductionSummary } from '../../types'
 import SeletorCliente from '../../components/SeletorCliente'
 import { Plus, Minus, X, ChefHat, ClipboardList } from 'lucide-react'
@@ -18,6 +19,7 @@ export default function PedidoManual({ products, onCriado, recarregar }: Props) 
   const [aberto, setAberto] = useState(false)
   const [pessoaId, setPessoaId] = useState<number | null>(null)
   const [qtds, setQtds] = useState<Record<number, number>>({})
+  const [data, setData] = useState(hoje())
   const [salvando, setSalvando] = useState(false)
 
   const carregar = async () => {
@@ -50,7 +52,7 @@ export default function PedidoManual({ products, onCriado, recarregar }: Props) 
     if (!items.length) return alert('Selecione ao menos um cookie')
     setSalvando(true)
     try {
-      await createManualOrder({ customerId: pessoaId, items })
+      await createManualOrder({ customerId: pessoaId, items, soldAt: data || undefined })
       setPessoaId(null); setQtds({}); setAberto(false)
       await carregar()
       onCriado()
@@ -105,6 +107,14 @@ export default function PedidoManual({ products, onCriado, recarregar }: Props) 
               <X size={15} className="text-ink-2" />
             </button>
           </div>
+
+          {/* Dia do pedido: da para lancar um de ontem sem ter que corrigir depois */}
+          <label className="block text-xs text-ink-2 mb-1">Dia do pedido</label>
+          <input
+            type="date"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+            className="mb-3 text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink" />
 
           {/* Cliente */}
           <label className="block text-xs text-ink-2 mb-1">Cliente</label>
