@@ -384,6 +384,16 @@ export const excluirPedido = (id: number) =>
   requestAdmin<{ customer_name: string; itens: string; estoque_devolvido: boolean }>(
     `${FN}/admin/orders/${id}`, { method: 'DELETE' })
 
+/** Troca os cookies e a observacao de um pedido. O estoque se ajusta sozinho. */
+export const editarPedido = (
+  id: number,
+  items: { productId: number; quantity: number }[],
+  notes?: string,
+) => requestAdmin<OrderResponse>(`${FN}/admin/orders/${id}/itens`, {
+  method: 'PATCH',
+  body: JSON.stringify({ items, notes: notes ?? null }),
+})
+
 export const getResumoFinanceiro = () => requestAdmin<ResumoFinanceiro>(`${PLAN}/resumo`)
 
 /* ---------- Custos ---------- */

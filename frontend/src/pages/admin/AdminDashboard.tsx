@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   getAdminOrders, updateOrderStatus,
-  getAdminProducts, updateProductStock, adjustProductStock, excluirPedido,
+  getAdminProducts, updateProductStock, adjustProductStock, excluirPedido, editarPedido,
 } from '../../api/api'
 import { OrderResponse, OrderStatus, Product } from '../../types'
 import OrderStatusBadge from '../../components/OrderStatusBadge'
@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   RefreshCw, LogOut, Info, MapPin, FileText, QrCode, CreditCard, Banknote,
   Truck, Store, Plus, Minus, ShoppingBag, Package, Wallet, History, Users, Inbox,
-  TrendingUp, Calculator, ShoppingCart, Trash2,
+  TrendingUp, Calculator, ShoppingCart, Trash2, Pencil,
 } from 'lucide-react'
 import ThemeToggle from '../../components/ThemeToggle'
 
@@ -32,6 +32,8 @@ const STATUS_ACTIONS: Record<OrderStatus, { next: OrderStatus; label: string; co
   DELIVERED: [],
   CANCELLED: [],
 }
+
+const brlAdmin = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
 type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes' | 'historico'
   | 'vendas' | 'custos' | 'compras'
@@ -97,6 +99,48 @@ Isso apaga de vez, nao da para desfazer.`)) return
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Nao deu para excluir')
     }
+  }
+
+  /* ---- Edicao de pedido ---- */
+  const [editandoPedido, setEditandoPedido] = useState<number | null>(null)
+  const [qtdsEdicao, setQtdsEdicao] = useState<Record<number, number>>({})
+  const [obsEdicao, setObsEdicao] = useState('')
+  const [salvandoPedido, setSalvandoPedido] = useState(false)
+
+  const totalEdicao = Object.entries(qtdsEdicao).reduce((soma, [id, q]) => {
+    const p = products.find((x) => x.id === Number(id))
+    return soma + (p ? p.price * q : 0)
+  }, 0)
+
+  /** Abre a edicao ja com os cookies que o pedido tem hoje. */
+  const abrirEdicaoPedido = (order: OrderResponse) => {
+    const qtds: Record<number, number> = {}
+    for (const i of order.items) qtds[i.productId] = i.quantity
+    setQtdsEdicao(qtds)
+    setObsEdicao(order.notes ?? '')
+    setEditandoPedido(order.id)
+  }
+
+  const mudarQtdEdicao = (id: number, delta: number) =>
+    setQtdsEdicao((prev) => {
+      const nova = Math.max(0, (prev[id] ?? 0) + delta)
+      const copia = { ...prev }
+      if (nova === 0) delete copia[id]; else copia[id] = nova
+      return copia
+    })
+
+  const salvarEdicaoPedido = async (id: number) => {
+    const items = Object.entries(qtdsEdicao).map(([pid, q]) => ({ productId: Number(pid), quantity: q }))
+    if (!items.length) return alert('O pedido precisa de ao menos um cookie')
+    setSalvandoPedido(true)
+    try {
+      const atualizado = await editarPedido(id, items, obsEdicao)
+      setOrders((prev) => prev.map((o) => (o.id === atualizado.id ? atualizado : o)))
+      setRecarregarProducao((n) => n + 1)   // o resumo do que assar muda junto
+      setEditandoPedido(null)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Não deu para salvar')
+    } finally { setSalvandoPedido(false) }
   }
 
   const handleSetStock = async (id: number) => {
@@ -372,16 +416,93 @@ Isso apaga de vez, nao da para desfazer.`)) return
                             {action.label}
                           </button>
                         ))}
+                        <button
+                          onClick={() => (editandoPedido === order.id ? setEditandoPedido(null) : abrirEdicaoPedido(order))}
+                          title={`Editar o pedido #${order.id}`}
+                          aria-label={`Editar o pedido #${order.id}`}
+                          className={`ml-auto w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                            editandoPedido === order.id
+                              ? 'bg-brand text-brand-ink'
+                              : 'text-ink-4 hover:bg-brand-soft hover:text-brand'
+                          }`}
+                        >
+                          <Pencil size={13} />
+                        </button>
                         {/* discreto e no canto: apagar e raro e nao tem volta */}
                         <button
                           onClick={() => handleDeleteOrder(order.id, order.customerName, order.totalAmount)}
                           title={`Excluir o pedido #${order.id}`}
                           aria-label={`Excluir o pedido #${order.id}`}
-                          className="ml-auto w-7 h-7 rounded-full text-ink-4 hover:bg-danger-bg hover:text-danger flex items-center justify-center transition-colors"
+                          className="w-7 h-7 rounded-full text-ink-4 hover:bg-danger-bg hover:text-danger flex items-center justify-center transition-colors"
                         >
                           <Trash2 size={13} />
                         </button>
                       </div>
+
+                      {/* Edicao do pedido: troca os cookies e a observacao.
+                          O estoque se ajusta sozinho quando o pedido ja tinha
+                          descontado (pedido do site pago); o anotado na mao nao
+                          desconta, entao nao mexe em nada. */}
+                      {editandoPedido === order.id && (
+                        <div className="mt-3 pt-3 border-t border-line-soft animate-fade-up">
+                          <p className="text-[11px] text-ink-3 mb-1.5">Cookies do pedido</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                            {products.map((p) => {
+                              const q = qtdsEdicao[p.id] ?? 0
+                              return (
+                                <div key={p.id}
+                                  className={`rounded-lg border p-1.5 transition-colors ${
+                                    q > 0 ? 'border-brand bg-brand-soft' : 'border-line'
+                                  }`}>
+                                  <p className="text-[11px] font-semibold text-ink truncate">
+                                    {p.name.replace('Cookie ', '')}
+                                    <span className="text-ink-3 font-normal"> · {brlAdmin(p.price)}</span>
+                                  </p>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <button
+                                      onClick={() => mudarQtdEdicao(p.id, -1)}
+                                      disabled={q === 0}
+                                      aria-label={`Tirar 1 ${p.name}`}
+                                      className="w-6 h-6 rounded-full border border-line text-brand flex items-center justify-center disabled:opacity-30">
+                                      <Minus size={11} strokeWidth={2.5} />
+                                    </button>
+                                    <span className="text-sm font-bold tabular-nums text-ink w-5 text-center">{q}</span>
+                                    <button
+                                      onClick={() => mudarQtdEdicao(p.id, 1)}
+                                      aria-label={`Adicionar 1 ${p.name}`}
+                                      className="w-6 h-6 rounded-full bg-brand text-brand-ink flex items-center justify-center">
+                                      <Plus size={11} strokeWidth={2.5} />
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          <input
+                            value={obsEdicao}
+                            onChange={(e) => setObsEdicao(e.target.value)}
+                            placeholder="observação (opcional)"
+                            className="w-full mt-2 text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink" />
+
+                          <div className="flex items-center justify-end gap-3 mt-3">
+                            <span className="text-sm text-ink-2 mr-auto tabular-nums">
+                              {brlAdmin(totalEdicao)}
+                            </span>
+                            <button
+                              onClick={() => setEditandoPedido(null)}
+                              className="text-sm font-semibold text-ink-2 hover:text-ink px-3 py-2 rounded-lg transition-colors">
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => salvarEdicaoPedido(order.id)}
+                              disabled={salvandoPedido || totalEdicao === 0}
+                              className="bg-brand hover:bg-brand-strong text-brand-ink font-bold text-sm px-5 py-2.5 rounded-xl transition-colors disabled:opacity-40">
+                              {salvandoPedido ? 'Salvando...' : 'Salvar'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
