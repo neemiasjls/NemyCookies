@@ -287,7 +287,11 @@ export default function Vendas({ products }: { products: Product[] }) {
                       {v.produtos.map((i) => `${i.quantity} ${i.productName.replace('Cookie ', '')}`).join(', ')}
                     </span>
                   )}
-                  {v.deliveryMode === 'retirada' ? (
+                  {v.origin === 'orvalho' ? (
+                    <span className="inline-flex items-center gap-0.5" title="entregue na farmácia, sem taxa">
+                      <Truck size={10} /> entrega na Orvalho
+                    </span>
+                  ) : v.deliveryMode === 'retirada' ? (
                     <span className="inline-flex items-center gap-0.5"><Store size={10} /> retirada</span>
                   ) : v.deliveryFee > 0 ? (
                     <span className="inline-flex items-center gap-0.5">
