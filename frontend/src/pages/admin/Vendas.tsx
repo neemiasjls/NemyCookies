@@ -1,3 +1,4 @@
+import { hoje, dataBR } from '../../data'
 import { useEffect, useMemo, useState } from 'react'
 import {
   getVendas, salvarVenda, excluirVenda, getResumoFinanceiro,
@@ -15,8 +16,7 @@ import {
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 const dec = (v: number) => String(v).replace('.', ',')
-const dataBR = (iso?: string) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR') : 'sem data')
-const hoje = () => new Date().toISOString().slice(0, 10)
+
 const paraNumero = (s: string) => Number(s.replace(',', '.')) || 0
 
 const TIPOS: { v: TipoVenda; label: string }[] = [
@@ -237,7 +237,6 @@ export default function Vendas({ products }: { products: Product[] }) {
     }
     return [...mapa.values()].sort((a, b) => (b.pagoEm ?? '').localeCompare(a.pagoEm ?? ''))
   }, [d])
-
 
   /** Uma linha de venda da lista. Funcao comum para dar para reusar dentro do grupo. */
   const linhaVenda = (v: VendaGeral) => (

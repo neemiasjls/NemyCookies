@@ -1,11 +1,11 @@
+import { hoje, dataBR as dataBR0 } from '../../data'
 import { useEffect, useState } from 'react'
 import { getCompras, salvarCompra, excluirCompra } from '../../api/api'
 import { ListaCompras, Compra, CategoriaCompra } from '../../types'
 import { Loader2, Plus, Trash2, Pencil, ShoppingCart, Fuel } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
-const dataBR = (iso?: string) => (iso ? new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR') : '—')
-const hoje = () => new Date().toISOString().slice(0, 10)
+const dataBR = (iso?: string) => dataBR0(iso, '—')
 
 const CATEGORIAS: { v: CategoriaCompra; label: string; cor: string }[] = [
   { v: 'ingrediente', label: 'Ingrediente', cor: 'text-brand bg-brand-soft border-brand-line' },

@@ -1,3 +1,4 @@
+import { hoje, dataBR } from '../../data'
 import { useEffect, useMemo, useState } from 'react'
 import {
   getTabSales, getTabSummary, getTabCustomers, createTabSale, createTabCustomer,
@@ -14,8 +15,6 @@ import {
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
-const dataBR = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR')
-const hoje = () => new Date().toISOString().slice(0, 10)
 
 export default function Caderneta({ products }: { products: Product[] }) {
   const [sales, setSales] = useState<TabSale[]>([])
