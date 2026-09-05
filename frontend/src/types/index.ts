@@ -269,6 +269,8 @@ export interface ListaCompras {
   entregasComGasto: number
   /** total + combustivel: o que realmente saiu do bolso */
   totalGeral: number
+  /** mercados ja usados, para sugerir no formulario */
+  mercados: string[]
   porCategoria: { category: CategoriaCompra; linhas: number; total: number }[]
 }
 
