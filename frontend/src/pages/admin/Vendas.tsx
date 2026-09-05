@@ -2,16 +2,16 @@ import { hoje, dataBR } from '../../data'
 import { useEffect, useMemo, useState } from 'react'
 import {
   getVendas, salvarVenda, excluirVenda, getResumoFinanceiro,
-  getAAnotar, anotarTodasAsVendas, marcarAnotada,
+  getAAnotar, anotarTodasAsVendas, marcarAnotada, getFormasPagamento,
 } from '../../api/api'
 import {
   ListaVendas, VendaGeral, TipoVenda, ModoEntrega, ResumoFinanceiro, Product,
-  ListaAAnotar, VendaAAnotar,
+  ListaAAnotar, VendaAAnotar, FormaPagamento, MetodoPagamento,
 } from '../../types'
 import { taxaDoPedido, FRETE_GRATIS_A_PARTIR_DE, GASTO_MEDIO_ENTREGA } from '../../entrega'
 import {
   Loader2, Plus, Minus, Trash2, Pencil, Truck, Store,
-  NotebookPen, ClipboardCopy, Check, ChevronRight,
+  NotebookPen, ClipboardCopy, Check, ChevronRight, Banknote, QrCode, CreditCard,
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -28,7 +28,7 @@ const TIPOS: { v: TipoVenda; label: string }[] = [
 type Rascunho = {
   id?: number; soldAt: string; customerName: string; amount: string
   deliveryFee: string; deliveryCost: string; deliveryMode: ModoEntrega
-  kind: TipoVenda; notes: string
+  kind: TipoVenda; notes: string; paymentMethod: FormaPagamento | null
   /** quantos de cada sabor, por id do produto */
   qtds: Record<number, number>
   /** true quando voce digitou o valor na mao, e ele para de seguir os sabores */
@@ -37,7 +37,7 @@ type Rascunho = {
 const vazio = (): Rascunho => ({
   id: undefined, soldAt: hoje(), customerName: '', amount: '',
   deliveryFee: '', deliveryCost: dec(GASTO_MEDIO_ENTREGA),
-  deliveryMode: 'entrega', kind: 'venda', notes: '',
+  deliveryMode: 'entrega', kind: 'venda', notes: '', paymentMethod: null,
   qtds: {}, valorManual: false,
 })
 
@@ -60,6 +60,7 @@ export default function Vendas({ products }: { products: Product[] }) {
   const [copiado, setCopiado] = useState(false)
   const [anotando, setAnotando] = useState(false)
   const [grupoAberto, setGrupoAberto] = useState<string | null>(null)
+  const [formas, setFormas] = useState<MetodoPagamento[]>([])
 
   const carregar = async (o = origem) => {
     setCarregando(true)
@@ -71,6 +72,7 @@ export default function Vendas({ products }: { products: Product[] }) {
     } finally { setCarregando(false) }
   }
   useEffect(() => { carregar(origem) }, [origem])
+  useEffect(() => { getFormasPagamento().then(setFormas).catch(() => {}) }, [])
 
   const abrir = (r: Rascunho, manual: boolean) => { setForm(r); setTaxaManual(manual) }
 
@@ -128,6 +130,7 @@ export default function Vendas({ products }: { products: Product[] }) {
         id: form.id, soldAt: form.soldAt || null, customerName: form.customerName, amount: v,
         deliveryFee: paraNumero(form.deliveryFee), deliveryCost: paraNumero(form.deliveryCost),
         deliveryMode: form.deliveryMode, kind: form.kind, notes: form.notes || null,
+        paymentMethod: form.paymentMethod,
         items: Object.entries(form.qtds).map(([id, q]) => ({ productId: Number(id), quantity: q })),
       })
       setForm(null); await carregar()
@@ -143,6 +146,7 @@ export default function Vendas({ products }: { products: Product[] }) {
       deliveryFee: v.deliveryFee ? dec(v.deliveryFee) : '0',
       deliveryCost: v.deliveryCost ? dec(v.deliveryCost) : '0',
       deliveryMode: v.deliveryMode, kind: v.kind, notes: v.notes ?? '',
+      paymentMethod: v.paymentMethod ?? null,
       qtds: Object.fromEntries(
         v.produtos.filter((i) => i.productId !== null)
           .map((i) => [i.productId as number, i.quantity])),
@@ -303,6 +307,12 @@ export default function Vendas({ products }: { products: Product[] }) {
                       <Truck size={10} /> sem taxa (gastou {brl(v.deliveryCost)})
                     </span>
                   ) : null}
+                  {v.paymentMethod && (
+                    <span className="text-ink-4">{rotuloPagamento[v.paymentMethod]}</span>
+                  )}
+                  {v.paymentFee > 0 && (
+                    <span className="text-warn" title="taxa da maquininha">−{brl(v.paymentFee)}</span>
+                  )}
                   {v.notes}
                 </p>
               </div>
@@ -324,6 +334,18 @@ export default function Vendas({ products }: { products: Product[] }) {
   const retirada = form?.deliveryMode === 'retirada'
   const valorForm = paraNumero(form?.amount ?? '')
   const somaSabores = form ? somaDosSabores(form.qtds) : 0
+  const rotuloPagamento: Record<string, string> = {
+    dinheiro: 'dinheiro', pix: 'pix', debito: 'débito', credito: 'crédito',
+  }
+  const ehCartao = form?.paymentMethod === 'debito' || form?.paymentMethod === 'credito'
+  const taxaDe = (c: FormaPagamento) => formas.find((f) => f.code === c)?.feePercent ?? 0
+  /** Quanto a maquininha vai ficar desta venda, pelo percentual de hoje. */
+  const taxaPrevista = (() => {
+    const f = formas.find((x) => x.code === form?.paymentMethod)
+    if (!f) return 0
+    const bruto = valorForm + paraNumero(form?.deliveryFee ?? '')
+    return Math.round((bruto * f.feePercent / 100 + f.feeFixed) * 100) / 100
+  })()
 
   return (
     <div className="space-y-4">
@@ -331,14 +353,15 @@ export default function Vendas({ products }: { products: Product[] }) {
         <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Numero titulo="Entrou" valor={resumo.receita} tom="text-success" />
-            <Numero titulo="Saiu" valor={resumo.compras + resumo.combustivel} tom="text-danger" />
+            <Numero titulo="Saiu" valor={resumo.compras + resumo.combustivel + resumo.maquininha} tom="text-danger" />
             <Numero titulo="Saldo" valor={resumo.saldo} forte
               tom={resumo.saldo >= 0 ? 'text-brand' : 'text-danger'} />
             <Numero titulo="A receber" valor={resumo.aReceber} tom="text-warn" nota="fiado na Orvalho" />
           </div>
           <p className="text-[11px] text-ink-3 mt-3 pt-3 border-t border-line-soft">
             Entrou = {brl(resumo.cookies)} em cookies + {brl(resumo.taxas)} de taxa de entrega.
-            Saiu = {brl(resumo.compras)} de compras + {brl(resumo.combustivel)} de combustível.
+            Saiu = {brl(resumo.compras)} de compras + {brl(resumo.combustivel)} de combustível
+            {resumo.maquininha > 0 ? ` + ${brl(resumo.maquininha)} de maquininha` : ''}.
           </p>
         </div>
       )}
@@ -526,6 +549,69 @@ export default function Vendas({ products }: { products: Product[] }) {
                 <Icon size={15} /> {label}
               </button>
             ))}
+          </div>
+
+          {/* Como a pessoa pagou. Cartao abre debito/credito porque a taxa da
+              maquininha e diferente entre os dois. */}
+          <div className="mt-2">
+            <p className="text-[11px] text-ink-3 mb-1.5">Como pagou</p>
+            <div className="flex gap-1.5">
+              {([
+                { v: 'dinheiro' as FormaPagamento, label: 'Dinheiro', Icon: Banknote },
+                { v: 'pix' as FormaPagamento,      label: 'Pix',      Icon: QrCode },
+              ]).map(({ v, label, Icon }) => (
+                <button key={v} onClick={() => setForm({ ...form, paymentMethod: v })}
+                  aria-pressed={form.paymentMethod === v}
+                  className={`flex-1 h-10 rounded-lg border text-sm font-semibold inline-flex items-center justify-center gap-1.5 transition-colors ${
+                    form.paymentMethod === v
+                      ? 'bg-brand text-brand-ink border-brand'
+                      : 'text-ink-2 border-line hover:border-brand hover:text-brand'
+                  }`}>
+                  <Icon size={15} /> {label}
+                </button>
+              ))}
+              <button
+                onClick={() => setForm({ ...form, paymentMethod: ehCartao ? null : 'debito' })}
+                aria-pressed={ehCartao}
+                className={`flex-1 h-10 rounded-lg border text-sm font-semibold inline-flex items-center justify-center gap-1.5 transition-colors ${
+                  ehCartao
+                    ? 'bg-brand text-brand-ink border-brand'
+                    : 'text-ink-2 border-line hover:border-brand hover:text-brand'
+                }`}>
+                <CreditCard size={15} /> Cartão
+              </button>
+            </div>
+
+            {ehCartao && (
+              <div className="flex gap-1.5 mt-1.5 pl-1 animate-fade-up">
+                {([
+                  { v: 'debito' as FormaPagamento,  label: 'Débito' },
+                  { v: 'credito' as FormaPagamento, label: 'Crédito' },
+                ]).map(({ v, label }) => (
+                  <button key={v} onClick={() => setForm({ ...form, paymentMethod: v })}
+                    aria-pressed={form.paymentMethod === v}
+                    className={`flex-1 h-9 rounded-lg border text-[13px] font-semibold transition-colors ${
+                      form.paymentMethod === v
+                        ? 'bg-brand-soft text-brand border-brand'
+                        : 'text-ink-2 border-line hover:border-brand'
+                    }`}>
+                    {label}
+                    {taxaDe(v) > 0 && (
+                      <span className="ml-1.5 text-[11px] font-normal opacity-70">
+                        {taxaDe(v).toString().replace('.', ',')}%
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {taxaPrevista > 0 && (
+              <p className="text-[11px] text-warn mt-1.5">
+                A maquininha fica com {brl(taxaPrevista)} — você recebe{' '}
+                <strong>{brl(valorForm + paraNumero(form.deliveryFee) - taxaPrevista)}</strong>.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">

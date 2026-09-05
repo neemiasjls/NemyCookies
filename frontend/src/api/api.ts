@@ -2,7 +2,7 @@ import {
   OrderResponse, OrderStatus, Product, Category,
   PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, ProductionSummary, Producao,
   AuditEntry, Custos, ListaCompras, ListaVendas, ResumoFinanceiro, ListaAAnotar,
-  Compra, VendaGeral, CategoriaCompra, TipoVenda, ModoEntrega,
+  Compra, VendaGeral, CategoriaCompra, TipoVenda, ModoEntrega, FormaPagamento, MetodoPagamento,
 } from '../types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -453,12 +453,19 @@ export const getVendas = (origem?: 'geral' | 'orvalho') =>
 export const salvarVenda = (b: {
   id?: number; soldAt?: string | null; customerName: string; amount: number
   deliveryFee?: number; deliveryCost?: number; kind?: TipoVenda
-  deliveryMode?: ModoEntrega; notes?: string | null
+  deliveryMode?: ModoEntrega; paymentMethod?: FormaPagamento | null; notes?: string | null
   /** omita para nao mexer nos itens; [] limpa */
   items?: { productId: number; quantity: number; unitPrice?: number }[]
 }) => post<VendaGeral>(`${PLAN}/vendas`, b)
 
 export const excluirVenda = (id: number) => del(`${PLAN}/vendas/${id}`)
+
+/* ---------- Formas de pagamento e a taxa da maquininha ---------- */
+export const getFormasPagamento = () => requestAdmin<MetodoPagamento[]>(`${PLAN}/pagamentos`)
+
+/** So vale para vendas novas: as antigas guardam a taxa que valia na epoca. */
+export const definirTaxaPagamento = (code: FormaPagamento, feePercent: number, feeFixed?: number) =>
+  patch<MetodoPagamento>(`${PLAN}/pagamentos/taxa`, { code, feePercent, feeFixed })
 
 /* ---------- A anotar na planilha (as duas origens) ---------- */
 export const getAAnotar = () => requestAdmin<ListaAAnotar>(`${PLAN}/a-anotar`)

@@ -3,12 +3,15 @@ import {
   getCustos, salvarPreco, usarPrecoDeReferencia, excluirPreco,
   definirRendimento, salvarItemReceita, excluirItemReceita,
   salvarEmbalagem, excluirEmbalagem, salvarItemSabor, excluirItemSabor,
-  salvarIngrediente, excluirIngrediente,
+  salvarIngrediente, excluirIngrediente, getFormasPagamento, definirTaxaPagamento,
 } from '../../api/api'
-import { Custos as DadosCustos, CustoSabor, Ingrediente, PrecoIngrediente } from '../../types'
+import {
+  Custos as DadosCustos, CustoSabor, Ingrediente, PrecoIngrediente,
+  MetodoPagamento, FormaPagamento,
+} from '../../types'
 import {
   Loader2, ChevronRight, Check, X, Plus, Trash2, Star, Pencil,
-  Cookie, Wheat, Box, Carrot,
+  Cookie, Wheat, Box, Carrot, CreditCard,
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -16,13 +19,14 @@ const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 const brlFino = (v: number) => `R$ ${v.toFixed(4).replace('.', ',')}`
 const num = (v: number) => String(v).replace('.', ',')
 
-type Secao = 'sabores' | 'massa' | 'embalagem' | 'ingredientes'
+type Secao = 'sabores' | 'massa' | 'embalagem' | 'ingredientes' | 'maquininha'
 
 const SECOES: { id: Secao; label: string; Icon: typeof Cookie }[] = [
   { id: 'sabores',     label: 'Sabores',     Icon: Cookie },
   { id: 'massa',       label: 'Massa',       Icon: Wheat },
   { id: 'embalagem',   label: 'Embalagem',   Icon: Box },
   { id: 'ingredientes',label: 'Ingredientes',Icon: Carrot },
+  { id: 'maquininha', label: 'Maquininha', Icon: CreditCard },
 ]
 
 const COMPONENTES: Record<string, string> = {
@@ -83,6 +87,7 @@ export default function Custos() {
       {secao === 'massa'       && <Massa d={d} acao={acao} />}
       {secao === 'embalagem'   && <Embalagens d={d} acao={acao} />}
       {secao === 'ingredientes'&& <Ingredientes d={d} acao={acao} />}
+      {secao === 'maquininha'  && <Maquininha acao={acao} />}
     </div>
   )
 }
@@ -578,5 +583,59 @@ function QuantidadeEditavel({ valor, sufixo, prefixo, casas = 2, largura = 'w-[7
       inputMode="decimal"
       className={`${largura} flex-shrink-0 text-right text-xs tabular-nums border border-brand rounded px-1.5 h-6 bg-surface text-ink`}
     />
+  )
+}
+
+/* ============================ MAQUININHA ============================ */
+/**
+ * A taxa que cada forma de pagamento cobra. Mexer aqui vale so para vendas
+ * novas: cada venda guarda a taxa que valia no dia, para nao reescrever o
+ * que voce ja recebeu.
+ */
+function Maquininha({ acao }: { acao: Props['acao'] }) {
+  const [formas, setFormas] = useState<MetodoPagamento[]>([])
+
+  const carregar = () => getFormasPagamento().then(setFormas).catch(() => {})
+  useEffect(() => { carregar() }, [])
+
+  const salvar = async (code: string, pct: number, fixo: number) => {
+    await acao(() => definirTaxaPagamento(code as FormaPagamento, pct, fixo))
+    await carregar()
+  }
+
+  return (
+    <div className="bg-surface rounded-xl border border-line shadow-card overflow-hidden">
+      <div className="p-4 border-b border-line-soft">
+        <h3 className="font-display font-bold text-ink flex items-center gap-2">
+          <CreditCard size={17} className="text-brand" /> Taxa da maquininha
+        </h3>
+        <p className="text-xs text-ink-2 mt-1 max-w-lg">
+          Quanto cada forma de pagamento fica com você. Dinheiro e Pix costumam
+          ser zero. Coloque aqui os percentuais da InfinitePay e a taxa entra
+          sozinha em toda venda nova.
+        </p>
+      </div>
+
+      <div className="divide-y divide-line-soft">
+        {formas.map((f) => (
+          <div key={f.code} className="flex items-center gap-2 px-4 py-2.5 text-xs">
+            <span className="text-ink font-semibold flex-1 min-w-0 truncate">{f.label}</span>
+            <QuantidadeEditavel
+              valor={f.feePercent} sufixo="%" largura="w-[72px]"
+              salvar={(v) => salvar(f.code, v, f.feeFixed)} />
+            <span className="text-ink-3">+</span>
+            <QuantidadeEditavel
+              valor={f.feeFixed} prefixo="R$" largura="w-20"
+              salvar={(v) => salvar(f.code, f.feePercent, v)} />
+            <span className="text-ink-3 w-16 text-right hidden sm:block">por venda</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="px-4 py-2.5 text-[11px] text-ink-2 bg-surface-2 border-t border-line-soft">
+        Mudar a taxa só vale daqui pra frente. As vendas já registradas guardam
+        a taxa que valia no dia, para o histórico não mudar sozinho.
+      </p>
+    </div>
   )
 }

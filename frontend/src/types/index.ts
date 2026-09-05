@@ -274,6 +274,18 @@ export interface ListaCompras {
 
 export type TipoVenda = 'venda' | 'consumo_proprio' | 'brinde'
 export type ModoEntrega = 'entrega' | 'retirada'
+export type FormaPagamento = 'dinheiro' | 'pix' | 'debito' | 'credito'
+
+/** Forma de pagamento e a taxa que a maquininha cobra. */
+export interface MetodoPagamento {
+  code: FormaPagamento
+  label: string
+  /** percentual da maquininha, ex: 4.99 */
+  feePercent: number
+  /** taxa fixa por venda, se houver */
+  feeFixed: number
+  active: boolean
+}
 
 /** Um sabor dentro de uma venda geral. */
 export interface ItemVenda {
@@ -299,6 +311,9 @@ export interface VendaGeral {
   deliveryCost: number
   /** retirada nao tem taxa nem gasto */
   deliveryMode: ModoEntrega
+  paymentMethod?: FormaPagamento | null
+  /** quanto a maquininha ficou; congelado na hora da venda */
+  paymentFee: number
   kind: TipoVenda
   notes?: string
   /** os cookies da venda; vazio nas 180 que vieram da planilha, que so tinham o total */
@@ -313,6 +328,7 @@ export interface ListaVendas {
   combustivel: number
   consumo: number
   retiradas: number
+  maquininha: number
   porOrigem: { origin: string; vendas: number; total: number }[]
 }
 
@@ -340,6 +356,8 @@ export interface ResumoFinanceiro {
   cookies: number
   taxas: number
   combustivel: number
+  /** taxa da maquininha; dinheiro que voce nao recebeu */
+  maquininha: number
   compras: number
   saldo: number
   /** ainda em aberto na caderneta da Orvalho */
