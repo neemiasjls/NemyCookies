@@ -236,6 +236,7 @@ const toTabSale = (s: any): TabSale => ({
   id: s.id,
   customerId: s.customer_id,
   customerName: s.customer_name,
+  local: s.customer_local ?? undefined,
   soldAt: s.sold_at,
   total: Number(s.total),
   paid: s.paid,
@@ -262,12 +263,13 @@ export const getTabSales = (status: TabStatus = 'open'): Promise<TabSale[]> =>
     .then((rows) => rows.map(toTabSale))
 
 export const getTabSummary = (): Promise<TabSummaryRow[]> =>
-  requestAdmin<{ customer_id: number; customer_name: string; nickname: string | null; phone: string | null; devendo: string; vendas_abertas: number; total_geral: string; ultima_compra: string; message: string | null }[]>(
+  requestAdmin<{ customer_id: number; customer_name: string; nickname: string | null; local: string | null; phone: string | null; devendo: string; vendas_abertas: number; total_geral: string; ultima_compra: string; message: string | null }[]>(
     `${FN}/admin/tab/summary`,
   ).then((rows) => rows.map((r) => ({
     customerId: r.customer_id,
     customerName: r.customer_name,
     nickname: r.nickname ?? undefined,
+    local: r.local ?? undefined,
     phone: r.phone ?? undefined,
     devendo: Number(r.devendo),
     vendasAbertas: r.vendas_abertas,
@@ -278,12 +280,13 @@ export const getTabSummary = (): Promise<TabSummaryRow[]> =>
 
 // ── Pessoas da caderneta ──
 export const getTabCustomers = (): Promise<TabCustomer[]> =>
-  requestAdmin<{ id: number; name: string; nickname: string | null; phone: string | null; devendo: string; vendas_abertas: number; ultima_compra: string | null }[]>(
+  requestAdmin<{ id: number; name: string; nickname: string | null; local: string | null; phone: string | null; devendo: string; vendas_abertas: number; ultima_compra: string | null }[]>(
     `${FN}/admin/tab/customers`,
   ).then((rows) => rows.map((r) => ({
     id: r.id,
     name: r.name,
     nickname: r.nickname ?? undefined,
+    local: r.local ?? undefined,
     phone: r.phone ?? undefined,
     devendo: Number(r.devendo),
     vendasAbertas: r.vendas_abertas,

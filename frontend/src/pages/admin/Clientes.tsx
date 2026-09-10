@@ -4,6 +4,7 @@ import {
   deleteTabCustomer, mergeTabCustomers,
 } from '../../api/api'
 import { TabCustomer } from '../../types'
+import SeloLocal from '../../components/SeloLocal'
 import { UserPlus, Pencil, Trash2, Search, Loader2, Users, Merge } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -205,6 +206,7 @@ export default function Clientes() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-sm font-medium text-ink truncate">{c.name}</p>
+                    <SeloLocal local={c.local} />
                     <button onClick={(e) => { e.stopPropagation(); editarApelido(c) }}
                       title="Apelido usado na mensagem de cobrança"
                       className={`text-[11px] leading-none px-1.5 py-1 rounded-full border transition-colors ${

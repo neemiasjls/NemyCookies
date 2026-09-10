@@ -4,3 +4,17 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-NpNJv8EmTuXKl3FS6LqtshibUo82izAhYtmHtYim4uE=' https://sdk.mercadopago.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://psnytvofbmrxrvofycds.supabase.co https://api.mercadopago.com https://sdk.mercadopago.com; frame-src https://sdk.mercadopago.com https://www.mercadopago.com; form-action 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+
+# Por que cada pedaco da CSP:
+#   O hash sha256 libera exatamente um script inline: o que aplica o tema
+#     antes da pagina pintar. Se aquele script mudar, o hash muda junto — o
+#     npm run build avisa (scripts/verificar-csp.cjs).
+#   script-src sem 'unsafe-inline' e o que de fato barra XSS: mesmo que alguem
+#     consiga injetar <script> numa pagina, o navegador recusa executar.
+#   style-src precisa de 'unsafe-inline' porque o Tailwind e as barrinhas de
+#     custo usam style inline; risco baixo, nao executa codigo.
+#   connect-src limita para onde o site pode mandar dados: so Supabase e
+#     Mercado Pago. Isso corta exfiltracao para servidor de terceiro.
+#   frame-src/frame-ancestors: o Mercado Pago abre iframe proprio para o cartao,
+#     mas ninguem pode embutir o nosso site dentro do dele.

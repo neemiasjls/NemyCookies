@@ -6,6 +6,7 @@ import {
   payAllForCustomer, setTabSaleAnnotated, markCharged, TabStatus,
 } from '../../api/api'
 import { Product, TabSale, TabSummaryRow, TabCustomer } from '../../types'
+import SeloLocal from '../../components/SeloLocal'
 import SeletorCliente from '../../components/SeletorCliente'
 import Producao from './Producao'
 import WhatsAppIcon from '../../components/WhatsAppIcon'
@@ -187,6 +188,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-ink text-sm">{v.customerName}</span>
+                      <SeloLocal local={v.local} />
                       {!v.paid ? (
                         <span className="text-[11px] font-bold text-brand bg-brand-soft px-2 py-0.5 rounded-full">A RECEBER</span>
                       ) : v.annotated ? (
@@ -374,6 +376,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
                       size={13}
                       className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
                     <span className="text-sm text-ink truncate group-hover:text-brand transition-colors">{r.customerName}</span>
+                    <SeloLocal local={r.local} />
                     <span className="text-[11px] text-ink-3 flex-shrink-0">({r.vendasAbertas}x)</span>
                   </button>
                   <div className="flex items-center gap-2 flex-shrink-0">

@@ -104,6 +104,8 @@ export interface TabSale {
   id: number
   customerId: number
   customerName: string
+  /** onde ela compra, quando nao e o fiado (ex.: Outro Local) */
+  local?: string
   soldAt: string
   total: number
   paid: boolean
@@ -121,6 +123,8 @@ export interface TabSummaryRow {
   customerId: number
   customerName: string
   nickname?: string
+  /** onde ela compra, quando nao e o fiado (ex.: Outro Local) */
+  local?: string
   /** so digitos, no formato 55 + DDD + numero */
   phone?: string
   /** cobranca pronta, montada no servidor */
@@ -137,6 +141,8 @@ export interface TabCustomer {
   name: string
   /** apelido, usado so na mensagem de cobranca */
   nickname?: string
+  /** onde ela compra, quando nao e o fiado (ex.: Outro Local) */
+  local?: string
   phone?: string
   devendo: number
   vendasAbertas: number
