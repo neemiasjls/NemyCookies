@@ -1,0 +1,63 @@
+# Pedidos, estoque e produção
+
+## Site
+
+### A home informa: assado na hora, entrega, retirada e formas de pagamento
+Informações em caixinhas na paleta marrom: cookies assados na hora; entrega R$ 4,
+grátis a partir de R$ 50; retirada em horário a combinar; Pix, dinheiro e cartão
+(aproximação). Não prometer prazo ("pronto em 1 hora" foi retirado).
+- Onde: `frontend/src/pages/Home.tsx`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-08-11
+
+### A logo e o nome no topo voltam para a home
+- Fonte: dono · Status: confirmado · Atualizado: 2026-06-18
+
+### O checkout aceita entrega ou retirada, e Pix, cartão ou dinheiro
+Dinheiro é pago na entrega ou na retirada. Pix e cartão passam pelo Mercado Pago.
+- Onde: `Checkout.tsx`, `PixPayment.tsx`, Edge Functions `checkout`, `payment-status`, `mp-webhook`
+- Situação atual: ver pendencias.md (Mercado Pago).
+- Fonte: código · Status: inferido · Atualizado: 2026-09-29
+
+## Pedido manual
+
+### O pedido manual é, na prática, o que vai para o fiado
+Anotado na aba de pedidos. Ao ficar Pronto ou Entregue, vira venda na caderneta
+sozinho; dali segue o caminho normal (fiado até quitar, depois Vendas).
+- Por quê: os pedidos manuais são os cookies que o dono leva para o ponto de venda.
+- Onde: `PedidoManual.tsx`, `update_order_status()`, `pedido_para_caderneta()`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
+
+### Mudar o status de ida e volta não duplica a venda
+O pedido guarda o vínculo com a venda criada na caderneta.
+- Fonte: documentação (commit) · Status: inferido · Atualizado: 2026-09-04
+
+### A data do pedido manual é escolhida ao anotar
+Padrão é hoje. Pedido de hoje guarda a hora real; data passada entra ao meio-dia,
+para o fuso não empurrar para o dia vizinho.
+- Onde: `create_manual_order(p_sold_at)`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
+
+### Pedido pode ser editado e excluído
+Editar abre os sabores atuais e a observação; o total se refaz. Pedido cancelado não
+se edita (reabrir antes).
+- Onde: `AdminDashboard.tsx`, `pedido_editar()`, `pedido_excluir()`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
+
+## Estoque
+
+### Estoque só é devolvido uma vez
+Cancelar já devolve o estoque. Excluir ou editar só devolve se o pedido ainda tinha
+descontado. Pedido manual nasce pendente e nunca desconta; pedido do site desconta
+quando o pagamento é aprovado.
+- Por quê: devolver duas vezes infla o estoque.
+- Onde: `stock_was_deducted()`, `restore_stock()`, `deduct_stock()`
+- Fonte: código · Status: inferido · Atualizado: 2026-09-02
+
+## Produção
+
+### O lote de produção acompanha o que foi levado para vender
+Sem pedidos fixos: o dono produz uma quantidade (geralmente no fim de semana), leva
+para vender e registra o lote. Cada venda da caderneta desconta do lote aberto, para
+saber quantos faltam vender. Fechar o lote mostra vendido × levado × sobra.
+- Onde: `Producao.tsx`, `producao_abrir/ajustar/atual/fechar()`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-09-01
