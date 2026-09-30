@@ -4,12 +4,13 @@ import {
   deleteTabCustomer, mergeTabCustomers,
 } from '../../api/api'
 import { TabCustomer } from '../../types'
-import SeloLocal from '../../components/SeloLocal'
+import { useEstabelecimento } from '../../hooks/useEstabelecimento'
+import SeletorEstabelecimento from '../../components/SeletorEstabelecimento'
 import { UserPlus, Pencil, Trash2, Search, Loader2, Users, Merge } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
-/** 5514998218858 -> (14) 99821-8858 */
+/** 5514912345678 -> (14) 91234-5678 */
 const fone = (v?: string) => {
   if (!v) return ''
   const d = v.replace(/[^0-9]/g, '').replace(/^55/, '')
@@ -18,7 +19,9 @@ const fone = (v?: string) => {
   return v
 }
 
+/** Clientes do estabelecimento de fiado escolhido. */
 export default function Clientes() {
+  const estab = useEstabelecimento()
   const [customers, setCustomers] = useState<TabCustomer[]>([])
   const [loading, setLoading] = useState(true)
   const [novo, setNovo] = useState('')
@@ -29,11 +32,12 @@ export default function Clientes() {
   const [juntarDe, setJuntarDe] = useState<number | null>(null)
 
   const carregar = async () => {
+    if (!estab.id) return
     setLoading(true)
-    try { setCustomers(await getTabCustomers()) } finally { setLoading(false) }
+    try { setCustomers(await getTabCustomers(estab.id)) } finally { setLoading(false) }
   }
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => { setJuntarDe(null); carregar() }, [estab.id])
 
   const jaExiste = customers.some(
     (c) => c.name.toLowerCase() === novo.trim().toLowerCase(),
@@ -45,7 +49,7 @@ export default function Clientes() {
     if (jaExiste) return alert(`"${nome}" já está cadastrado.`)
     setSalvando(true)
     try {
-      await createTabCustomer(nome, apelido.trim() || undefined, telefone.trim() || undefined)
+      await createTabCustomer(nome, apelido.trim() || undefined, telefone.trim() || undefined, estab.id ?? undefined)
       setNovo(''); setApelido(''); setTelefone('')
       await carregar()
     } catch (e) {
@@ -105,6 +109,16 @@ export default function Clientes() {
 
   return (
     <div className="space-y-4">
+      <SeletorEstabelecimento
+        lista={estab.lista}
+        id={estab.id}
+        onEscolher={estab.escolher}
+        onMudou={async (novoId) => {
+          await estab.recarregar()
+          if (novoId) estab.escolher(novoId)
+        }}
+      />
+
       {/* Cadastrar */}
       <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
         <h3 className="font-display font-bold text-ink mb-1">Cadastrar cliente</h3>
@@ -206,7 +220,6 @@ export default function Clientes() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-sm font-medium text-ink truncate">{c.name}</p>
-                    <SeloLocal local={c.local} />
                     <button onClick={(e) => { e.stopPropagation(); editarApelido(c) }}
                       title="Apelido usado na mensagem de cobrança"
                       className={`text-[11px] leading-none px-1.5 py-1 rounded-full border transition-colors ${

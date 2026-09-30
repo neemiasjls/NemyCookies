@@ -38,10 +38,10 @@ const brlAdmin = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes' | 'historico'
   | 'vendas' | 'custos' | 'compras'
 
-/* Dois grupos: em cima o fiado e os clientes dela (o controle do dia a dia),
-   embaixo o resto do negocio. */
+/* Dois grupos: em cima o fiado e os clientes dele (o controle do dia a dia),
+   embaixo o resto do negocio. Os estabelecimentos de fiado vem do banco. */
 const ABAS: { id: Tab; label: string; Icon: typeof ShoppingBag; grupo: 1 | 2 }[] = [
-  { id: 'caderneta', label: 'Fiado',   Icon: Wallet,       grupo: 1 },
+  { id: 'caderneta', label: 'Fiado',     Icon: Wallet,       grupo: 1 },
   { id: 'clientes',  label: 'Clientes',  Icon: Users,        grupo: 1 },
   { id: 'orders',    label: 'Pedidos',   Icon: ShoppingBag,  grupo: 2 },
   { id: 'stock',     label: 'Estoque',   Icon: Package,      grupo: 2 },

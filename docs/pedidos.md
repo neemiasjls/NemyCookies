@@ -21,9 +21,11 @@ Dinheiro é pago na entrega ou na retirada. Pix e cartão passam pelo Mercado Pa
 ## Pedido manual
 
 ### O pedido manual é, na prática, o que vai para o fiado
-Anotado na aba de pedidos. Ao ficar Pronto ou Entregue, vira venda na caderneta
-sozinho; dali segue o caminho normal (fiado até quitar, depois Vendas).
-- Por quê: os pedidos manuais são os cookies que o dono leva para o ponto de venda.
+Anotado na aba de pedidos. Ao ficar Pronto ou Entregue, vira venda no fiado do
+estabelecimento do cliente, sozinho; dali segue o caminho normal (fiado até quitar,
+depois Vendas). Na escolha do cliente, quem não é do principal aparece com o
+estabelecimento ao lado.
+- Por quê: os pedidos manuais são os cookies que o dono leva para o estabelecimento.
 - Onde: `PedidoManual.tsx`, `update_order_status()`, `pedido_para_caderneta()`
 - Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
 

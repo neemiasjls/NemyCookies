@@ -6,7 +6,8 @@ import {
   payAllForCustomer, setTabSaleAnnotated, markCharged, TabStatus,
 } from '../../api/api'
 import { Product, TabSale, TabSummaryRow, TabCustomer } from '../../types'
-import SeloLocal from '../../components/SeloLocal'
+import { useEstabelecimento } from '../../hooks/useEstabelecimento'
+import SeletorEstabelecimento from '../../components/SeletorEstabelecimento'
 import SeletorCliente from '../../components/SeletorCliente'
 import Producao from './Producao'
 import WhatsAppIcon from '../../components/WhatsAppIcon'
@@ -17,7 +18,12 @@ import {
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
+/**
+ * Fiado de um estabelecimento por vez: cada um tem os proprios clientes,
+ * o proprio "A receber" e a propria lista de vendas.
+ */
 export default function Caderneta({ products }: { products: Product[] }) {
+  const estab = useEstabelecimento()
   const [sales, setSales] = useState<TabSale[]>([])
   const [summary, setSummary] = useState<TabSummaryRow[]>([])
   const [customers, setCustomers] = useState<TabCustomer[]>([])
@@ -39,23 +45,30 @@ export default function Caderneta({ products }: { products: Product[] }) {
   const [qtds, setQtds] = useState<Record<number, number>>({})
 
   const carregar = async (status: TabStatus = filtro) => {
+    const est = estab.id
+    if (!est) return
     setLoading(true)
     try {
       const [lista, resumo, pessoas] = await Promise.all([
-        getTabSales(status), getTabSummary(), getTabCustomers(),
+        getTabSales(status, est), getTabSummary(est), getTabCustomers(est),
       ])
+      estab.recarregar().catch(() => {})   // o "a receber" de cada chip
       setSales(lista); setSummary(resumo); setCustomers(pessoas)
       // as vendas em aberto alimentam os dropdowns do "A receber".
       // Se voce esta numa aba de pagos com um dropdown aberto, busca elas a parte,
       // senao o cartao sumiria da tela logo depois de voce mexer nele.
       if (status === 'open') setAbertas(lista)
-      else if (abertoId !== null) setAbertas(await getTabSales('open'))
+      else if (abertoId !== null) setAbertas(await getTabSales('open', est))
       else setAbertas(null)
       setVersao((n) => n + 1)
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { carregar(filtro) }, [filtro])
+  // trocar de estabelecimento fecha o que estava aberto e comeca do zero
+  useEffect(() => {
+    setAbertoId(null); setAbertas(null); setPessoaId(null); setClienteAberto(null)
+    carregar(filtro)
+  }, [filtro, estab.id])
 
   const totalCarrinho = useMemo(
     () => Object.entries(qtds).reduce((soma, [id, q]) => {
@@ -134,7 +147,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
     setAbertoId(customerId)
     if (abertas) return
     setBuscandoVendas(true)
-    try { setAbertas(await getTabSales('open')) }
+    try { setAbertas(await getTabSales('open', estab.id ?? undefined)) }
     catch { setAbertas([]) }
     finally { setBuscandoVendas(false) }
   }
@@ -142,7 +155,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
   const vendasDe = (customerId: number) =>
     (abertas ?? []).filter((v) => v.customerId === customerId && !v.paid)
 
-  // Copiar para a planilha e marcar como anotada agora vivem na aba Vendas,
+  // Copiar para a planilha e marcar como anotada vivem na aba Vendas,
   // onde a lista cobre todas as vendas e nao so as do fiado.
 
   /**
@@ -188,7 +201,6 @@ export default function Caderneta({ products }: { products: Product[] }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-ink text-sm">{v.customerName}</span>
-                      <SeloLocal local={v.local} />
                       {!v.paid ? (
                         <span className="text-[11px] font-bold text-brand bg-brand-soft px-2 py-0.5 rounded-full">A RECEBER</span>
                       ) : v.annotated ? (
@@ -285,8 +297,19 @@ export default function Caderneta({ products }: { products: Product[] }) {
 
   return (
     <div className="space-y-4">
-      {/* ---------- Produção levada para vender ---------- */}
+      {/* ---------- Produção levada para vender (vale para todos os lugares) ---------- */}
       <Producao products={products} recarregar={versao} />
+
+      {/* ---------- Estabelecimento ---------- */}
+      <SeletorEstabelecimento
+        lista={estab.lista}
+        id={estab.id}
+        onEscolher={estab.escolher}
+        onMudou={async (novoId) => {
+          await estab.recarregar()
+          if (novoId) estab.escolher(novoId)
+        }}
+      />
 
       {/* ---------- Registrar venda ---------- */}
       <div className="bg-surface rounded-xl border border-line p-4 shadow-card">
@@ -300,7 +323,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
             value={pessoaId}
             onChange={setPessoaId}
             onCreate={async (nome) => {
-              const nova = await createTabCustomer(nome)
+              const nova = await createTabCustomer(nome, undefined, undefined, estab.id ?? undefined)
               await carregar()
               setPessoaId(nova.id)
             }}
@@ -376,7 +399,6 @@ export default function Caderneta({ products }: { products: Product[] }) {
                       size={13}
                       className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
                     <span className="text-sm text-ink truncate group-hover:text-brand transition-colors">{r.customerName}</span>
-                    <SeloLocal local={r.local} />
                     <span className="text-[11px] text-ink-3 flex-shrink-0">({r.vendasAbertas}x)</span>
                   </button>
                   <div className="flex items-center gap-2 flex-shrink-0">

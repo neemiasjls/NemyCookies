@@ -36,7 +36,7 @@ export default {
         danger:  { DEFAULT: token('danger'),  bg: token('danger-bg'),  line: token('danger-line'),  solid: token('danger-solid') },
         info:    { DEFAULT: token('info'),    bg: token('info-bg'),    line: token('info-line'),    solid: token('info-solid') },
         accent:  { DEFAULT: token('accent'),  bg: token('accent-bg'),  line: token('accent-line') },
-        // teal da logo do fiado, usado no selo das vendas que vem de la
+        // teal do fiado, usado no selo das vendas que vem de la
         fiado: { DEFAULT: token('fiado'), bg: token('fiado-bg'), line: token('fiado-line') },
 
         /* Paleta original, mantida para o que e sempre marrom (logo, favicon, etc.) */

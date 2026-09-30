@@ -1,7 +1,7 @@
 # NemyCookies — documentação do projeto
 
 Delivery de cookies artesanais em Herculândia/SP. O site público recebe pedidos; o
-painel admin (`/admin/dashboard`) controla a caderneta de fiado do fiado, vendas,
+painel admin (`/admin/dashboard`) controla o fiado dos estabelecimentos parceiros, vendas,
 pedidos, estoque, produção, compras e custo de cada sabor. Frontend React/Vite no
 Cloudflare Pages; banco, regras e API no Supabase (Postgres + Edge Functions).
 
@@ -12,9 +12,9 @@ exceções e decisões. Leia só o arquivo do assunto em que vai mexer.
 
 | Assunto | Arquivo | Palavras-chave |
 |---|---|---|
-| Visão geral e glossário | [negocio.md](negocio.md) | Fiado, Outro Local, planilha, canais |
+| Visão geral e glossário | [negocio.md](negocio.md) | fiado, estabelecimento, planilha, canais |
 | Vendas | [vendas.md](vendas.md) | `Vendas.tsx`, `entrega.ts`, `sales_all`, `vendas_a_anotar`, `general_sales`, `payment_methods`, Edge Function `planilha` |
-| Fiado (caderneta e clientes) | [fiado.md](fiado.md) | `Caderneta.tsx`, `Clientes.tsx`, `SeloLocal.tsx`, `tab_*`, `tab_customers.local`, Edge Function `admin` |
+| Fiado (estabelecimentos, clientes, caderneta) | [fiado.md](fiado.md) | `Caderneta.tsx`, `Clientes.tsx`, `SeletorEstabelecimento.tsx`, `useEstabelecimento.ts`, `fiado_*`, `tab_*`, Edge Function `admin` |
 | Pedidos, estoque e produção | [pedidos.md](pedidos.md) | `Checkout.tsx`, `PedidoManual.tsx`, `AdminDashboard.tsx`, `Producao.tsx`, `orders`, `pedido_*`, `producao_*`, Edge Functions `checkout`, `payment-status`, `mp-webhook` |
 | Plataforma | [plataforma.md](plataforma.md) | deploy, Supabase, Cloudflare, `_headers`, CSP, `data.ts`, fuso, views, `revoke` |
 | Pendências e divergências | [pendencias.md](pendencias.md) | dúvidas em aberto, regras a confirmar |
@@ -37,8 +37,9 @@ repositório, porque envolvem custos e margens.
    seguem a regra velha.
 4. Código não confirma regra: o que vem só do código é "inferido".
 5. Duas versões que não dá para decidir vão para "Divergências" em pendencias.md.
-6. Sem senhas, chaves, CPF, telefones, endereços ou nomes de clientes: descreva o
-   mecanismo, não a pessoa. Para segredos, registre só onde são configurados.
+6. Sem senhas, chaves, CPF, telefones, endereços, nomes de clientes ou de
+   estabelecimentos: descreva o mecanismo, não a pessoa ou o lugar. Para segredos,
+   registre só onde são configurados.
 7. Formato de cada regra:
 
 ```

@@ -6,8 +6,9 @@ import {
 } from '../../api/api'
 import {
   ListaVendas, VendaGeral, TipoVenda, ModoEntrega, ResumoFinanceiro, Product,
-  ListaAAnotar, VendaAAnotar, FormaPagamento, MetodoPagamento,
+  ListaAAnotar, VendaAAnotar, FormaPagamento, MetodoPagamento, OrigemVenda,
 } from '../../types'
+import SeloEstabelecimento from '../../components/SeloEstabelecimento'
 import { taxaDoPedido, FRETE_GRATIS_A_PARTIR_DE, GASTO_MEDIO_ENTREGA } from '../../entrega'
 import {
   Loader2, Plus, Minus, Trash2, Pencil, Truck, Store,
@@ -43,14 +44,14 @@ const vazio = (): Rascunho => ({
 
 /**
  * Venda geral: o que veio da planilha mais o que voce lancar aqui.
- * O fiado entra sozinha, mas so depois de quitada — fiado ainda nao e dinheiro.
- * Essas linhas levam o selo do estabelecimento e sao editadas la, na caderneta.
+ * O fiado entra sozinho, mas so depois de quitado — fiado ainda nao e dinheiro.
+ * Essas linhas levam o selo do estabelecimento e sao editadas la, no fiado.
  */
 export default function Vendas({ products }: { products: Product[] }) {
   const [d, setD] = useState<ListaVendas | null>(null)
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null)
   const [carregando, setCarregando] = useState(true)
-  const [origem, setOrigem] = useState<'geral' | 'fiado' | null>(null)
+  const [origem, setOrigem] = useState<OrigemVenda | null>(null)
   const [form, setForm] = useState<Rascunho | null>(null)
   // enquanto voce nao mexer na taxa, ela acompanha o valor do pedido sozinha
   const [taxaManual, setTaxaManual] = useState(false)
@@ -139,7 +140,7 @@ export default function Vendas({ products }: { products: Product[] }) {
   }
 
   const editar = (v: VendaGeral) => {
-    if (v.origin === 'fiado') { alert('Essa venda é do fiado. Edite pela caderneta.'); return }
+    if (v.origin === 'fiado') { alert('Essa venda é do fiado. Edite pela aba Fiado.'); return }
     abrir({
       id: v.id, soldAt: v.soldAt ?? '', customerName: v.customerName,
       amount: dec(v.amount),
@@ -155,7 +156,7 @@ export default function Vendas({ products }: { products: Product[] }) {
   }
 
   const apagar = async (v: VendaGeral) => {
-    if (v.origin === 'fiado') { alert('Essa venda é do fiado. Apague pela caderneta.'); return }
+    if (v.origin === 'fiado') { alert('Essa venda é do fiado. Apague pela aba Fiado.'); return }
     if (!confirm(`Excluir a venda de ${v.customerName} (${brl(v.amount)})?`)) return
     try { await excluirVenda(v.id); await carregar() }
     catch (e) { alert(e instanceof Error ? e.message : 'Erro ao excluir') }
@@ -169,17 +170,17 @@ export default function Vendas({ products }: { products: Product[] }) {
   const porPessoa = useMemo(() => {
     const mapa = new Map<string, {
       nome: string; itens: VendaAAnotar[]; total: number
-      taxas: number; temFiado: boolean; maisAntiga: string
+      taxas: number; estabelecimento?: string; maisAntiga: string
     }>()
     for (const v of aAnotar?.itens ?? []) {
       const g = mapa.get(v.customerName) ?? {
         nome: v.customerName, itens: [], total: 0,
-        taxas: 0, temFiado: false, maisAntiga: '9999',
+        taxas: 0, maisAntiga: '9999',
       }
       g.itens.push(v)
       g.total += v.valor
       g.taxas += v.taxa
-      if (v.origin === 'fiado') g.temFiado = true
+      if (v.origin === 'fiado') g.estabelecimento ??= v.estabelecimento
       const quando = v.saleDate ?? v.soldAt ?? ''
       if (quando && quando < g.maisAntiga) g.maisAntiga = quando
       mapa.set(v.customerName, g)
@@ -233,14 +234,14 @@ export default function Vendas({ products }: { products: Product[] }) {
     const mapa = new Map<string, {
       chave: string; nome: string; ultima?: string
       pagoEm?: string; pagamentosVariados: boolean
-      itens: VendaGeral[]; total: number; fiado: boolean
+      itens: VendaGeral[]; total: number; estabelecimento?: string
     }>()
     for (const v of d?.itens ?? []) {
       const g = mapa.get(v.customerName)
       if (g) {
         g.itens.push(v)
         g.total += v.amount
-        if (v.origin === 'fiado') g.fiado = true
+        if (v.origin === 'fiado') g.estabelecimento ??= v.estabelecimento
         const dataDaVenda = v.saleDate ?? v.soldAt
         if ((dataDaVenda ?? '') > (g.ultima ?? '')) g.ultima = dataDaVenda
         if (v.soldAt !== g.pagoEm) g.pagamentosVariados = true
@@ -249,7 +250,8 @@ export default function Vendas({ products }: { products: Product[] }) {
         mapa.set(v.customerName, {
           chave: v.customerName, nome: v.customerName, ultima: v.saleDate ?? v.soldAt,
           pagoEm: v.soldAt, pagamentosVariados: false,
-          itens: [v], total: v.amount, fiado: v.origin === 'fiado',
+          itens: [v], total: v.amount,
+          estabelecimento: v.origin === 'fiado' ? v.estabelecimento : undefined,
         })
       }
     }
@@ -267,12 +269,7 @@ export default function Vendas({ products }: { products: Product[] }) {
 
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-ink truncate flex items-center gap-1.5">
-                  {v.origin === 'fiado' && (
-                    <span title="Venda do estabelecimento, já quitada na caderneta"
-                      className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-fiado-line bg-fiado-bg text-fiado">
-                      Fiado
-                    </span>
-                  )}
+                  {v.origin === 'fiado' && <SeloEstabelecimento nome={v.estabelecimento} />}
                   <span className="truncate">{v.customerName}</span>
                   {v.kind !== 'venda' && (
                     <span className="flex-shrink-0 text-[10px] font-semibold text-warn bg-warn-bg border border-warn-line px-1.5 rounded-full">
@@ -293,7 +290,7 @@ export default function Vendas({ products }: { products: Product[] }) {
                   )}
                   {v.origin === 'fiado' ? (
                     <span className="inline-flex items-center gap-0.5" title="entregue no estabelecimento, sem taxa">
-                      <Truck size={10} /> entrega no fiado
+                      <Truck size={10} /> entrega no estabelecimento
                     </span>
                   ) : v.deliveryMode === 'retirada' ? (
                     <span className="inline-flex items-center gap-0.5"><Store size={10} /> retirada</span>
@@ -356,7 +353,7 @@ export default function Vendas({ products }: { products: Product[] }) {
             <Numero titulo="Saiu" valor={resumo.compras + resumo.combustivel + resumo.maquininha} tom="text-danger" />
             <Numero titulo="Saldo" valor={resumo.saldo} forte
               tom={resumo.saldo >= 0 ? 'text-brand' : 'text-danger'} />
-            <Numero titulo="A receber" valor={resumo.aReceber} tom="text-warn" nota="fiado no fiado" />
+            <Numero titulo="A receber" valor={resumo.aReceber} tom="text-warn" nota="no fiado" />
           </div>
           <p className="text-[11px] text-ink-3 mt-3 pt-3 border-t border-line-soft">
             Entrou = {brl(resumo.cookies)} em cookies + {brl(resumo.taxas)} de taxa de entrega.
@@ -413,11 +410,7 @@ export default function Vendas({ products }: { products: Product[] }) {
                       <span className="text-[11px] text-ink-3 flex-shrink-0">
                         ({g.itens.length}x{g.taxas > 0 ? `, ${brl(g.taxas)} de entrega` : ''})
                       </span>
-                      {g.temFiado && (
-                        <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-fiado-line bg-fiado-bg text-fiado">
-                          Fiado
-                        </span>
-                      )}
+                      {g.estabelecimento && <SeloEstabelecimento nome={g.estabelecimento} />}
                     </button>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-sm font-bold text-ink tabular-nums">{brl(g.total)}</span>
@@ -696,11 +689,7 @@ export default function Vendas({ products }: { products: Product[] }) {
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-surface-2 transition-colors group">
                   <ChevronRight size={14}
                     className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
-                  {g.fiado && (
-                    <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-fiado-line bg-fiado-bg text-fiado">
-                      Fiado
-                    </span>
-                  )}
+                  {g.estabelecimento && <SeloEstabelecimento nome={g.estabelecimento} />}
                   <span className="text-sm text-ink truncate flex-1 min-w-0 group-hover:text-brand transition-colors">
                     {g.nome}
                   </span>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getTabCustomers, createManualOrder, getProductionSummary } from '../../api/api'
+import { getTabCustomers, createManualOrder, getProductionSummary, getEstabelecimentos } from '../../api/api'
 import { hoje } from '../../data'
 import { Product, TabCustomer, ProductionSummary } from '../../types'
 import SeletorCliente from '../../components/SeletorCliente'
@@ -23,8 +23,14 @@ export default function PedidoManual({ products, onCriado, recarregar }: Props) 
   const [salvando, setSalvando] = useState(false)
 
   const carregar = async () => {
-    const [pessoas, prod] = await Promise.all([getTabCustomers(), getProductionSummary()])
-    setCustomers(pessoas)
+    const [pessoas, prod, lugares] = await Promise.all([
+      getTabCustomers(), getProductionSummary(), getEstabelecimentos(),
+    ])
+    // o pedido vai para o fiado do estabelecimento da pessoa; quem nao e do
+    // principal aparece com o lugar ao lado, para nao confundir nomes iguais
+    const principal = lugares.find((e) => e.principal)?.id
+    setCustomers(pessoas.map((c) => c.estabelecimentoId === principal
+      ? c : { ...c, name: `${c.name} (${c.estabelecimento})` }))
     setProducao(prod)
   }
 

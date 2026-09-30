@@ -8,14 +8,14 @@ e controla tudo sozinho; o painel substituiu a planilha onde ele anotava entrada
 - Por quê: a descrição certa é "delivery", não "e-commerce".
 - Fonte: dono · Status: confirmado · Atualizado: 2026-09-29
 
-### As vendas chegam por quatro canais
+### As vendas chegam por três canais
 1. **Site** — pedido online, entrega ou retirada.
-2. **Fiado** — estabelecimento parceira: o dono deixa cookies lá, o estabelecimento vende e as
-   pessoas pagam depois (fiado, anotado na caderneta).
-3. **Outro Local** — outro ponto onde há clientes que compram no mesmo esquema de fiado.
-4. **Venda direta** — levada para outra cidade no fim de semana, encomenda ou
+2. **Fiado** — estabelecimentos parceiros: o dono deixa cookies lá, o estabelecimento
+   vende e as pessoas pagam depois (anotado no fiado). Há um estabelecimento principal
+   e podem existir outros; os nomes ficam só no banco (ver fiado.md).
+3. **Venda direta** — levada para outra cidade no fim de semana, encomenda ou
    entrega avulsa; lançada à mão em Vendas.
-- Fonte: dono · Status: confirmado · Atualizado: 2026-09-29
+- Fonte: dono · Status: confirmado · Atualizado: 2026-09-30
 
 ### Nem todo cookie produzido é venda
 Parte da produção é consumo próprio ou brinde (ex.: para a família). Isso também é
@@ -35,11 +35,11 @@ ficam na tabela `products` (aba Estoque).
 
 ## Glossário
 
-- **Fiado** — estabelecimento parceira; também o nome da aba da caderneta (antes "Caderneta").
-- **Caderneta** — controle de fiado: quem comprou, o quê, quanto deve, quando pagou.
+- **Estabelecimento** — ponto parceiro onde os cookies ficam para vender fiado.
+- **Principal** — o estabelecimento padrão; na planilha, os clientes dele saem sem sufixo.
+- **Fiado / caderneta** — quem comprou, o quê, quanto deve, quando pagou (aba Fiado).
 - **Dar baixa / quitar** — marcar venda da caderneta como paga. A data da baixa é a
   data de pagamento.
-- **Local** — onde um cliente da caderneta compra, quando não é o fiado (ex.: Outro Local).
 - **Planilha** — planilha pessoal que o dono ainda mantém; o painel gera as linhas para
   colar nela ("a anotar").
 - **Anotada** — venda que já foi copiada para a planilha.
@@ -52,7 +52,7 @@ ficam na tabela `products` (aba Estoque).
 ## Organização do painel
 
 ### Abas em dois grupos
-Primeiro grupo: Fiado e Clientes (o fiado do estabelecimento). Segundo grupo: Estoque,
+Primeiro grupo: Fiado e Clientes (o controle dos estabelecimentos). Segundo grupo: Estoque,
 Pedidos, Produção, Vendas, Compras/Gastos, Precificação e Histórico.
 - Por quê: a caderneta do estabelecimento é um controle separado e não se mistura com o resto.
 - Onde: `frontend/src/pages/admin/AdminDashboard.tsx`

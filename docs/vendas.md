@@ -1,16 +1,16 @@
 # Vendas
 
 Aba Vendas: vendas gerais lançadas à mão, vendas importadas da planilha e vendas da
-Fiado já pagas. É a visão do dinheiro que entrou.
+de fiado já pagas. É a visão do dinheiro que entrou.
 
 ## O que entra
 
 ### Só venda paga do fiado aparece em Vendas
-Venda em aberto na caderneta fica só lá. Ao dar baixa, ela aparece em Vendas sozinha,
-com o selo do estabelecimento, e só pode ser editada ou apagada pela caderneta.
+Venda em aberto no fiado fica só lá. Ao dar baixa, ela aparece em Vendas sozinha,
+com o selo do estabelecimento, e só pode ser editada ou apagada pela aba Fiado.
 - Por quê: fiado ainda não é dinheiro. Isso já quebrou uma vez (vendas pagas que não
   apareciam) e não pode se repetir.
-- Onde: view `sales_all` (`where s.paid`), `Vendas.tsx` (`apagar` recusa origem fiado)
+- Onde: view `sales_all` (`where s.paid`), `Vendas.tsx` (`apagar` recusa origem `fiado`)
 - Fonte: dono · Status: confirmado · Atualizado: 2026-09-04
 
 ### A venda geral é registrada pelos sabores, não por um valor digitado
@@ -69,7 +69,7 @@ Mudar o percentual vale só para vendas novas; o que já foi recebido não muda.
 
 ## Datas
 
-### Em Vendas, a data de uma venda do fiado é a do pagamento
+### Em Vendas, a data de uma venda de fiado é a do pagamento
 O cabeçalho do grupo mostra quando o dinheiro entrou ("pago dia", ou "último pgto"
 quando a pessoa pagou em dias diferentes). Dentro do grupo, cada venda mostra o dia em
 que o cookie saiu e, se diferente, "pago DD/MM".
@@ -92,7 +92,7 @@ Ordem: venda mais recente de cada pessoa em cima.
 
 ### "A anotar" cobre todas as vendas e gera uma linha por pessoa
 Seção da aba Vendas com tudo que ainda não foi para a planilha: vendas gerais e vendas
-do fiado já pagas. O botão copia uma linha por pessoa:
+de fiado já pagas. O botão copia uma linha por pessoa:
 `cookie <nome em minúsculas>` + TAB + `<total com vírgula>`; o total soma cookies e
 taxa de entrega.
 - Por quê: é o formato da planilha pessoal; a taxa faz parte do que a pessoa pagou.
@@ -100,7 +100,8 @@ taxa de entrega.
 - Antes: as 180 vendas importadas nasceram marcadas como anotadas (já estavam na planilha).
 - Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
 
-### O nome na planilha leva o local do cliente
-Cliente da caderneta com local (ex.: Outro Local) sai como `cookie <nome> (<local>)`.
-- Onde: `tab_nome_com_local()` na view `sales_all` — ver fiado.md
-- Fonte: dono · Status: confirmado · Atualizado: 2026-09-10
+### O nome na planilha leva o estabelecimento, exceto no principal
+Cliente de fiado do principal sai como `cookie <nome>`; dos outros estabelecimentos,
+`cookie <nome> (<estabelecimento>)`.
+- Onde: `fiado_nome_planilha()` na view `sales_all` — ver fiado.md
+- Fonte: dono · Status: confirmado · Atualizado: 2026-09-30

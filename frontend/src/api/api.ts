@@ -1,6 +1,6 @@
 import {
   OrderResponse, OrderStatus, Product, Category,
-  PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, ProductionSummary, Producao,
+  PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, Estabelecimento, OrigemVenda, ProductionSummary, Producao,
   AuditEntry, Custos, ListaCompras, ListaVendas, ResumoFinanceiro, ListaAAnotar,
   Compra, VendaGeral, CategoriaCompra, TipoVenda, ModoEntrega, FormaPagamento, MetodoPagamento,
 } from '../types'
@@ -236,7 +236,8 @@ const toTabSale = (s: any): TabSale => ({
   id: s.id,
   customerId: s.customer_id,
   customerName: s.customer_name,
-  local: s.customer_local ?? undefined,
+  estabelecimentoId: s.estabelecimento_id,
+  estabelecimento: s.estabelecimento ?? undefined,
   soldAt: s.sold_at,
   total: Number(s.total),
   paid: s.paid,
@@ -258,18 +259,26 @@ const toTabSale = (s: any): TabSale => ({
 /** open = a receber · to_annotate = pago, falta anotar · annotated = pago e anotado */
 export type TabStatus = 'open' | 'to_annotate' | 'annotated' | 'all'
 
-export const getTabSales = (status: TabStatus = 'open'): Promise<TabSale[]> =>
-  requestAdmin<unknown[]>(`${FN}/admin/tab${status !== 'all' ? `?status=${status}` : ''}`)
-    .then((rows) => rows.map(toTabSale))
+/** Monta "?a=1&b=2" so com o que foi informado. */
+const query = (p: Record<string, string | number | null | undefined>) => {
+  const q = Object.entries(p).filter(([, v]) => v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
+  return q ? `?${q}` : ''
+}
 
-export const getTabSummary = (): Promise<TabSummaryRow[]> =>
-  requestAdmin<{ customer_id: number; customer_name: string; nickname: string | null; local: string | null; phone: string | null; devendo: string; vendas_abertas: number; total_geral: string; ultima_compra: string; message: string | null }[]>(
-    `${FN}/admin/tab/summary`,
+export const getTabSales = (status: TabStatus = 'open', estabelecimentoId?: number): Promise<TabSale[]> =>
+  requestAdmin<unknown[]>(`${FN}/admin/tab${query({
+    status: status !== 'all' ? status : null, estabelecimento: estabelecimentoId,
+  })}`).then((rows) => rows.map(toTabSale))
+
+export const getTabSummary = (estabelecimentoId?: number): Promise<TabSummaryRow[]> =>
+  requestAdmin<{ customer_id: number; customer_name: string; nickname: string | null; estabelecimento_id: number; phone: string | null; devendo: string; vendas_abertas: number; total_geral: string; ultima_compra: string; message: string | null }[]>(
+    `${FN}/admin/tab/summary${query({ estabelecimento: estabelecimentoId })}`,
   ).then((rows) => rows.map((r) => ({
     customerId: r.customer_id,
     customerName: r.customer_name,
     nickname: r.nickname ?? undefined,
-    local: r.local ?? undefined,
+    estabelecimentoId: r.estabelecimento_id,
     phone: r.phone ?? undefined,
     devendo: Number(r.devendo),
     vendasAbertas: r.vendas_abertas,
@@ -278,23 +287,40 @@ export const getTabSummary = (): Promise<TabSummaryRow[]> =>
     message: r.message ?? '',
   })))
 
-// ── Pessoas da caderneta ──
-export const getTabCustomers = (): Promise<TabCustomer[]> =>
-  requestAdmin<{ id: number; name: string; nickname: string | null; local: string | null; phone: string | null; devendo: string; vendas_abertas: number; ultima_compra: string | null }[]>(
-    `${FN}/admin/tab/customers`,
+// ── Estabelecimentos de fiado (nomes so no banco) ──
+export const getEstabelecimentos = (): Promise<Estabelecimento[]> =>
+  requestAdmin<{ id: number; nome: string; principal: boolean; clientes: number; a_receber: string }[]>(
+    `${FN}/admin/fiado/estabelecimentos`,
+  ).then((rows) => rows.map((r) => ({
+    id: r.id, nome: r.nome, principal: r.principal,
+    clientes: Number(r.clientes), aReceber: Number(r.a_receber),
+  })))
+
+export const criarEstabelecimento = (nome: string): Promise<{ id: number; nome: string }> =>
+  requestAdmin(`${FN}/admin/fiado/estabelecimentos`, { method: 'POST', body: JSON.stringify({ nome }) })
+
+export const renomearEstabelecimento = (id: number, nome: string): Promise<{ id: number; nome: string }> =>
+  requestAdmin(`${FN}/admin/fiado/estabelecimentos/${id}`, { method: 'PATCH', body: JSON.stringify({ nome }) })
+
+// ── Pessoas do fiado ──
+/** Sem estabelecimento: todas as pessoas, de todos os lugares. */
+export const getTabCustomers = (estabelecimentoId?: number): Promise<TabCustomer[]> =>
+  requestAdmin<{ id: number; name: string; nickname: string | null; estabelecimento_id: number; estabelecimento: string; phone: string | null; devendo: string; vendas_abertas: number; ultima_compra: string | null }[]>(
+    `${FN}/admin/tab/customers${query({ estabelecimento: estabelecimentoId })}`,
   ).then((rows) => rows.map((r) => ({
     id: r.id,
     name: r.name,
     nickname: r.nickname ?? undefined,
-    local: r.local ?? undefined,
+    estabelecimentoId: r.estabelecimento_id,
+    estabelecimento: r.estabelecimento,
     phone: r.phone ?? undefined,
     devendo: Number(r.devendo),
     vendasAbertas: r.vendas_abertas,
     ultimaCompra: r.ultima_compra ?? undefined,
   })))
 
-export const createTabCustomer = (name: string, nickname?: string, phone?: string): Promise<{ id: number; name: string }> =>
-  requestAdmin(`${FN}/admin/tab/customers`, { method: 'POST', body: JSON.stringify({ name, nickname, phone }) })
+export const createTabCustomer = (name: string, nickname?: string, phone?: string, estabelecimentoId?: number): Promise<{ id: number; name: string }> =>
+  requestAdmin(`${FN}/admin/tab/customers`, { method: 'POST', body: JSON.stringify({ name, nickname, phone, estabelecimentoId }) })
 
 /** Apelido usado so na mensagem de cobranca. Manda vazio para tirar. */
 export const setTabCustomerNickname = (id: number, nickname: string): Promise<{ id: number; name: string }> =>
@@ -452,7 +478,7 @@ export const salvarCompra = (b: Partial<Compra> & { item: string; amount: number
 export const excluirCompra = (id: number) => del(`${PLAN}/compras/${id}`)
 
 /* ---------- Vendas gerais ---------- */
-export const getVendas = (origem?: 'geral' | 'fiado') =>
+export const getVendas = (origem?: OrigemVenda) =>
   requestAdmin<ListaVendas>(`${PLAN}/vendas${origem ? `?origin=${origem}` : ''}`)
 
 export const salvarVenda = (b: {
@@ -478,5 +504,5 @@ export const getAAnotar = () => requestAdmin<ListaAAnotar>(`${PLAN}/a-anotar`)
 export const anotarTodasAsVendas = () =>
   post<{ anotadas: number }>(`${PLAN}/a-anotar/todas`, {})
 
-export const marcarAnotada = (origem: 'geral' | 'fiado', id: number, annotated: boolean) =>
+export const marcarAnotada = (origem: OrigemVenda, id: number, annotated: boolean) =>
   patch(`${PLAN}/a-anotar/${origem}/${id}`, { annotated })

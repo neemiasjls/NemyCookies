@@ -104,8 +104,9 @@ export interface TabSale {
   id: number
   customerId: number
   customerName: string
-  /** onde ela compra, quando nao e o fiado (ex.: Outro Local) */
-  local?: string
+  /** estabelecimento de fiado da pessoa (o nome vem do banco) */
+  estabelecimentoId: number
+  estabelecimento?: string
   soldAt: string
   total: number
   paid: boolean
@@ -123,8 +124,7 @@ export interface TabSummaryRow {
   customerId: number
   customerName: string
   nickname?: string
-  /** onde ela compra, quando nao e o fiado (ex.: Outro Local) */
-  local?: string
+  estabelecimentoId: number
   /** so digitos, no formato 55 + DDD + numero */
   phone?: string
   /** cobranca pronta, montada no servidor */
@@ -135,14 +135,26 @@ export interface TabSummaryRow {
   ultimaCompra: string
 }
 
-/** Pessoa cadastrada na caderneta */
+/**
+ * Estabelecimento de venda fiado. Os nomes vivem so no banco: o codigo so
+ * conhece o id. O principal nao leva sufixo no nome que vai para a planilha.
+ */
+export interface Estabelecimento {
+  id: number
+  nome: string
+  principal: boolean
+  clientes: number
+  aReceber: number
+}
+
+/** Pessoa cadastrada no fiado de um estabelecimento */
 export interface TabCustomer {
   id: number
   name: string
   /** apelido, usado so na mensagem de cobranca */
   nickname?: string
-  /** onde ela compra, quando nao e o fiado (ex.: Outro Local) */
-  local?: string
+  estabelecimentoId: number
+  estabelecimento: string
   phone?: string
   devendo: number
   vendasAbertas: number
@@ -160,7 +172,7 @@ export interface PixPaymentCreatedResponse {
 
 /* =====================================================================
    Sistema que veio da planilha: custos, compras e vendas gerais.
-   Nao se mistura com a caderneta do fiado nem com os clientes dela.
+   Nao se mistura com o fiado nem com os clientes dele.
    ===================================================================== */
 
 export type UnidadeIngrediente = 'g' | 'ml' | 'un'
@@ -295,6 +307,9 @@ export interface MetodoPagamento {
   active: boolean
 }
 
+/** geral = lancada em Vendas; fiado = venda de fiado ja quitada */
+export type OrigemVenda = 'geral' | 'fiado'
+
 /** Um sabor dentro de uma venda geral. */
 export interface ItemVenda {
   productId: number | null
@@ -304,10 +319,12 @@ export interface ItemVenda {
 }
 
 export interface VendaGeral {
-  /** de onde veio: lancada aqui ou uma venda ja quitada do fiado */
-  origin: 'geral' | 'fiado'
+  /** de onde veio: lancada aqui ou uma venda de fiado ja quitada */
+  origin: OrigemVenda
   id: number
-  /** quando o dinheiro entrou; nas do fiado e a data do pagamento */
+  /** nas de fiado, o estabelecimento (nome vindo do banco) */
+  estabelecimento?: string
+  /** quando o dinheiro entrou; nas de fiado e a data do pagamento */
   soldAt?: string
   /** quando o cookie foi vendido de fato */
   saleDate?: string
@@ -342,8 +359,9 @@ export interface ListaVendas {
 
 /** Uma linha esperando para ir para a sua planilha. */
 export interface VendaAAnotar {
-  origin: 'geral' | 'fiado'
+  origin: OrigemVenda
   id: number
+  estabelecimento?: string
   soldAt?: string
   saleDate?: string
   customerName: string
@@ -368,6 +386,6 @@ export interface ResumoFinanceiro {
   maquininha: number
   compras: number
   saldo: number
-  /** ainda em aberto na caderneta do fiado */
+  /** ainda em aberto no fiado */
   aReceber: number
 }

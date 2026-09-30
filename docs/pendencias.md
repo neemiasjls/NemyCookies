@@ -9,9 +9,13 @@ do assunto e sai daqui.
 Versionar numa pasta `supabase/` para não depender só do Supabase. Ver plataforma.md.
 - Atualizado: 2026-09-29
 
-### Não há tela para editar o local do cliente
-Hoje `tab_customers.local` só muda direto no banco. Ver fiado.md.
-- Atualizado: 2026-09-10
+### Não há como trocar um cliente de estabelecimento pelo painel
+Hoje `tab_customers.estabelecimento_id` só muda direto no banco. Ver fiado.md.
+- Atualizado: 2026-09-30
+
+### Não há como mudar qual estabelecimento é o principal pelo painel
+`fiado_estabelecimentos.principal` só muda direto no banco.
+- Atualizado: 2026-09-30
 
 ### Vendas da caderneta de 11/08 registradas no dia 10/08
 Nove vendas foram lançadas quando o painel ainda gravava datas em UTC. Foram mantidas
