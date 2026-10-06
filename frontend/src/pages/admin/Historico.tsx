@@ -13,6 +13,7 @@ const ESTILO: Record<string, { Icon: typeof Wallet; cor: string; fundo: string }
   venda_paga:         { Icon: Wallet,       cor: 'text-success',    fundo: 'bg-success-bg' },
   venda_parcial:      { Icon: HandCoins,    cor: 'text-brand',   fundo: 'bg-brand-soft' },
   venda_estornada:    { Icon: Wallet,       cor: 'text-warn',   fundo: 'bg-warn-bg' },
+  venda_data_pagamento: { Icon: Wallet,     cor: 'text-info',   fundo: 'bg-info-bg' },
   venda_anotada:      { Icon: NotebookPen,  cor: 'text-info',     fundo: 'bg-info-bg' },
   venda_desanotada:   { Icon: NotebookPen,  cor: 'text-warn',   fundo: 'bg-warn-bg' },
   anotou_todas:       { Icon: NotebookPen,  cor: 'text-info',     fundo: 'bg-info-bg' },

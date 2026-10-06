@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   getVendas, salvarVenda, excluirVenda, getResumoFinanceiro,
   getAAnotar, anotarTodasAsVendas, marcarAnotada, getFormasPagamento,
+  setTabSalePaymentDate,
 } from '../../api/api'
 import {
   ListaVendas, VendaGeral, TipoVenda, ModoEntrega, ResumoFinanceiro, Product,
@@ -12,7 +13,7 @@ import SeloEstabelecimento from '../../components/SeloEstabelecimento'
 import { taxaDoPedido, FRETE_GRATIS_A_PARTIR_DE, GASTO_MEDIO_ENTREGA } from '../../entrega'
 import {
   Loader2, Plus, Minus, Trash2, Pencil, Truck, Store,
-  NotebookPen, ClipboardCopy, Check, ChevronRight, Banknote, QrCode, CreditCard,
+  NotebookPen, ClipboardCopy, Check, ChevronRight, Banknote, QrCode, CreditCard, CalendarDays,
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -64,6 +65,10 @@ export default function Vendas({ products }: { products: Product[] }) {
   const [anotando, setAnotando] = useState(false)
   const [grupoAberto, setGrupoAberto] = useState<string | null>(null)
   const [formas, setFormas] = useState<MetodoPagamento[]>([])
+  // venda do fiado com o dia do pagamento em edicao (id da venda no fiado)
+  const [editandoPgto, setEditandoPgto] = useState<number | null>(null)
+  const [diaPgto, setDiaPgto] = useState('')
+  const [salvandoPgto, setSalvandoPgto] = useState(false)
 
   const carregar = async (o = origem) => {
     setCarregando(true)
@@ -170,6 +175,24 @@ export default function Vendas({ products }: { products: Product[] }) {
     }, true)  // venda que ja existe: nao mexe na taxa que voce escolheu
   }
 
+  /**
+   * Venda do fiado: aqui so da para corrigir o dia do pagamento (o resto e
+   * pela aba Fiado). O soldAt dessas linhas ja e o dia do pagamento.
+   */
+  const salvarDiaPgto = async (v: VendaGeral) => {
+    if (salvandoPgto || v.origin !== 'fiado') return
+    const venda = v.saleDate ?? ''
+    if (!diaPgto || diaPgto > hoje()) return alert('Informe um dia de pagamento válido, até hoje.')
+    if (venda && diaPgto < venda) return alert(`O pagamento não pode ser antes da venda (${dataBR(venda)}).`)
+    if (diaPgto === v.soldAt) { setEditandoPgto(null); return }
+    setSalvandoPgto(true)
+    try {
+      await setTabSalePaymentDate(v.id, diaPgto)
+      setEditandoPgto(null)
+      await carregar()
+    } catch (e) { alert(e instanceof Error ? e.message : 'Erro ao salvar o dia do pagamento') }
+    finally { setSalvandoPgto(false) }
+  }
 
   const apagar = async (v: VendaGeral) => {
     if (v.origin === 'fiado') { alert('Essa venda é do fiado. Apague pela aba Fiado.'); return }
@@ -276,7 +299,8 @@ export default function Vendas({ products }: { products: Product[] }) {
 
   /** Uma linha de venda da lista. Funcao comum para dar para reusar dentro do grupo. */
   const linhaVenda = (v: VendaGeral) => (
-            <div key={`${v.origin}-${v.id}`} className="flex items-center gap-2.5 px-3 py-2.5 group">
+          <div key={`${v.origin}-${v.id}`}>
+            <div className="flex items-center gap-2.5 px-3 py-2.5 group">
               {/* a data da venda, nao a do pagamento: nas do fiado as duas diferem */}
               <span className="text-[11px] text-ink-3 tabular-nums w-[68px] flex-shrink-0"
                 title="dia em que o cookie foi vendido">
@@ -340,8 +364,33 @@ export default function Vendas({ products }: { products: Product[] }) {
                       className="text-ink-3 hover:text-danger transition-colors p-1"><Trash2 size={13} /></button>
                   </div>
                 )}
+                {v.origin === 'fiado' && editandoPgto !== v.id && (
+                  <button onClick={() => { setDiaPgto(v.soldAt ?? hoje()); setEditandoPgto(v.id) }}
+                    title="Editar dia do pagamento" aria-label="Editar dia do pagamento"
+                    className="text-ink-3 hover:text-brand transition-colors p-1 sm:opacity-0 sm:group-hover:opacity-100">
+                    <CalendarDays size={13} />
+                  </button>
+                )}
               </div>
             </div>
+            {v.origin === 'fiado' && editandoPgto === v.id && (
+              <form className="flex flex-wrap items-end gap-2 px-3 pb-2.5 sm:pl-[88px]"
+                onSubmit={(e) => { e.preventDefault(); salvarDiaPgto(v) }}>
+                <label className="min-w-0 text-xs text-ink-2">
+                  Dia do pagamento
+                  <input type="date" required min={v.saleDate} max={hoje()} value={diaPgto} autoFocus
+                    onChange={(e) => setDiaPgto(e.target.value)} disabled={salvandoPgto}
+                    className="mt-1 block max-w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-sm text-ink" />
+                </label>
+                <button type="submit" disabled={salvandoPgto}
+                  className="rounded-lg bg-success-bg px-3 py-2 text-xs font-semibold text-success disabled:opacity-50">
+                  {salvandoPgto ? 'Salvando…' : 'Salvar'}
+                </button>
+                <button type="button" disabled={salvandoPgto} onClick={() => setEditandoPgto(null)}
+                  className="rounded-lg px-2 py-2 text-xs text-ink-2 disabled:opacity-50">Cancelar</button>
+              </form>
+            )}
+          </div>
   )
 
   const retirada = form?.deliveryMode === 'retirada'

@@ -356,6 +356,23 @@ export const setTabSalePaid = (id: number, paid: boolean): Promise<TabSale> =>
   requestAdmin(`${FN}/admin/tab/${id}/paid`, { method: 'PATCH', body: JSON.stringify({ paid }) })
     .then(toTabSale)
 
+/**
+ * Corrige so o dia do pagamento (AAAA-MM-DD) de uma venda de fiado ja quitada.
+ * Serve tanto a aba Fiado quanto as linhas do fiado na aba Vendas.
+ */
+export const setTabSalePaymentDate = (id: number, paidOn: string): Promise<TabSale> =>
+  requestAdmin(`${FN}/admin/tab/${id}/payment-date`, {
+    method: 'PATCH', body: JSON.stringify({ paidOn }),
+  })
+    .then(toTabSale)
+    .catch((e: unknown) => {
+      // servidor ainda sem a rota nova: explica em vez de mostrar "Rota nao encontrada"
+      if (e instanceof Error && /rota nao encontrada/i.test(e.message)) {
+        throw new Error('Editar o dia do pagamento ainda não está disponível no servidor.')
+      }
+      throw e
+    })
+
 /** Abate uma parte do valor: a pessoa pagou so um pedaco agora. */
 export const addTabPayment = (id: number, amount: number): Promise<TabSale> =>
   requestAdmin(`${FN}/admin/tab/${id}/payment`, { method: 'PATCH', body: JSON.stringify({ amount }) })
