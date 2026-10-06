@@ -294,7 +294,8 @@ export interface ListaCompras {
 
 export type TipoVenda = 'venda' | 'consumo_proprio' | 'brinde'
 export type ModoEntrega = 'entrega' | 'retirada'
-export type FormaPagamento = 'dinheiro' | 'pix' | 'debito' | 'credito'
+/** cartao_outro: cartao em que voce digita o liquido que caiu; a taxa e a diferenca */
+export type FormaPagamento = 'dinheiro' | 'pix' | 'debito' | 'credito' | 'cartao_outro'
 
 /** Forma de pagamento e a taxa que a maquininha cobra. */
 export interface MetodoPagamento {

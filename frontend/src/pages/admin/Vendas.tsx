@@ -34,12 +34,14 @@ type Rascunho = {
   qtds: Record<number, number>
   /** true quando voce digitou o valor na mao nesta edicao, e ele para de seguir os sabores */
   valorManual: boolean
+  /** cartao "outro": quanto caiu na conta; a taxa e o total menos isso */
+  liquido: string
 }
 const vazio = (): Rascunho => ({
   id: undefined, soldAt: hoje(), customerName: '', amount: '',
   deliveryFee: '', deliveryCost: dec(GASTO_MEDIO_ENTREGA),
   deliveryMode: 'entrega', kind: 'venda', notes: '', paymentMethod: null,
-  qtds: {}, valorManual: false,
+  qtds: {}, valorManual: false, liquido: '',
 })
 
 /**
@@ -125,13 +127,22 @@ export default function Vendas({ products }: { products: Product[] }) {
     const v = paraNumero(form.amount)
     if (!form.customerName.trim()) return alert('Diga para quem foi')
     if (!form.amount.trim() || v < 0) return alert('Valor inválido')
+    // cartao "outro": a taxa e o que faltou entre o total cobrado e o que caiu
+    let paymentFee: number | null = null
+    if (form.paymentMethod === 'cartao_outro') {
+      const total = v + paraNumero(form.deliveryFee)
+      const liq = paraNumero(form.liquido)
+      if (!form.liquido.trim() || liq <= 0) return alert('Diga quanto caiu na conta')
+      if (liq > total) return alert('O que caiu não pode ser maior que o total da venda')
+      paymentFee = Math.round((total - liq) * 100) / 100
+    }
     setSalvando(true)
     try {
       await salvarVenda({
         id: form.id, soldAt: form.soldAt || null, customerName: form.customerName, amount: v,
         deliveryFee: paraNumero(form.deliveryFee), deliveryCost: paraNumero(form.deliveryCost),
         deliveryMode: form.deliveryMode, kind: form.kind, notes: form.notes || null,
-        paymentMethod: form.paymentMethod,
+        paymentMethod: form.paymentMethod, paymentFee,
         items: Object.entries(form.qtds).map(([id, q]) => ({ productId: Number(id), quantity: q })),
       })
       setForm(null); await carregar()
@@ -154,8 +165,11 @@ export default function Vendas({ products }: { products: Product[] }) {
       // o valor salvo fica como esta ate voce mexer nos sabores; ai ele passa a
       // seguir a soma, igual a uma venda nova (digitar no campo volta a travar)
       valorManual: false,
+      liquido: v.paymentMethod === 'cartao_outro'
+        ? dec(Math.round((v.amount + (v.deliveryFee ?? 0) - v.paymentFee) * 100) / 100) : '',
     }, true)  // venda que ja existe: nao mexe na taxa que voce escolheu
   }
+
 
   const apagar = async (v: VendaGeral) => {
     if (v.origin === 'fiado') { alert('Essa venda é do fiado. Apague pela aba Fiado.'); return }
@@ -334,15 +348,23 @@ export default function Vendas({ products }: { products: Product[] }) {
   const valorForm = paraNumero(form?.amount ?? '')
   const somaSabores = form ? somaDosSabores(form.qtds) : 0
   const rotuloPagamento: Record<string, string> = {
-    dinheiro: 'dinheiro', pix: 'pix', debito: 'débito', credito: 'crédito',
+    dinheiro: 'dinheiro', pix: 'pix', debito: 'débito', credito: 'crédito', cartao_outro: 'cartão',
   }
   const ehCartao = form?.paymentMethod === 'debito' || form?.paymentMethod === 'credito'
+    || form?.paymentMethod === 'cartao_outro'
+  // "Outro" so aparece quando o banco ja conhece essa forma de pagamento
+  const temCartaoOutro = formas.some((f) => f.code === 'cartao_outro')
   const taxaDe = (c: FormaPagamento) => formas.find((f) => f.code === c)?.feePercent ?? 0
-  /** Quanto a maquininha vai ficar desta venda, pelo percentual de hoje. */
+  /** Quanto a maquininha vai ficar desta venda: pelo percentual de hoje, ou, no
+   *  cartao "outro", a diferenca entre o total e o que caiu na conta. */
   const taxaPrevista = (() => {
+    const bruto = valorForm + paraNumero(form?.deliveryFee ?? '')
+    if (form?.paymentMethod === 'cartao_outro') {
+      if (!form.liquido.trim()) return 0
+      return Math.max(0, Math.round((bruto - paraNumero(form.liquido)) * 100) / 100)
+    }
     const f = formas.find((x) => x.code === form?.paymentMethod)
     if (!f) return 0
-    const bruto = valorForm + paraNumero(form?.deliveryFee ?? '')
     return Math.round((bruto * f.feePercent / 100 + f.feeFixed) * 100) / 100
   })()
 
@@ -582,6 +604,7 @@ export default function Vendas({ products }: { products: Product[] }) {
                 {([
                   { v: 'debito' as FormaPagamento,  label: 'Débito' },
                   { v: 'credito' as FormaPagamento, label: 'Crédito' },
+                  ...(temCartaoOutro ? [{ v: 'cartao_outro' as FormaPagamento, label: 'Outro' }] : []),
                 ]).map(({ v, label }) => (
                   <button key={v} onClick={() => setForm({ ...form, paymentMethod: v })}
                     aria-pressed={form.paymentMethod === v}
@@ -599,6 +622,15 @@ export default function Vendas({ products }: { products: Product[] }) {
                   </button>
                 ))}
               </div>
+            )}
+
+            {form.paymentMethod === 'cartao_outro' && (
+              <label className="text-[11px] text-ink-3 flex flex-col gap-1 mt-1.5 pl-1 max-w-[220px]">
+                Quanto caiu na conta
+                <input value={form.liquido} inputMode="decimal" placeholder="R$"
+                  onChange={(e) => setForm({ ...form, liquido: e.target.value })}
+                  className="text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink" />
+              </label>
             )}
 
             {taxaPrevista > 0 && (

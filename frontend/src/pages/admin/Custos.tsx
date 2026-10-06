@@ -595,7 +595,9 @@ function QuantidadeEditavel({ valor, sufixo, prefixo, casas = 2, largura = 'w-[7
 function Maquininha({ acao }: { acao: Props['acao'] }) {
   const [formas, setFormas] = useState<MetodoPagamento[]>([])
 
-  const carregar = () => getFormasPagamento().then(setFormas).catch(() => {})
+  // o cartao "outro" nao tem percentual: a taxa e digitada venda a venda
+  const carregar = () => getFormasPagamento()
+    .then((fs) => setFormas(fs.filter((f) => f.code !== 'cartao_outro'))).catch(() => {})
   useEffect(() => { carregar() }, [])
 
   const salvar = async (code: string, pct: number, fixo: number) => {

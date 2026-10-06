@@ -485,6 +485,8 @@ export const salvarVenda = (b: {
   id?: number; soldAt?: string | null; customerName: string; amount: number
   deliveryFee?: number; deliveryCost?: number; kind?: TipoVenda
   deliveryMode?: ModoEntrega; paymentMethod?: FormaPagamento | null; notes?: string | null
+  /** so no cartao_outro: a taxa ja calculada (total - liquido que caiu) */
+  paymentFee?: number | null
   /** omita para nao mexer nos itens; [] limpa */
   items?: { productId: number; quantity: number; unitPrice?: number }[]
 }) => post<VendaGeral>(`${PLAN}/vendas`, b)
