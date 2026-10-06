@@ -32,7 +32,7 @@ type Rascunho = {
   kind: TipoVenda; notes: string; paymentMethod: FormaPagamento | null
   /** quantos de cada sabor, por id do produto */
   qtds: Record<number, number>
-  /** true quando voce digitou o valor na mao, e ele para de seguir os sabores */
+  /** true quando voce digitou o valor na mao nesta edicao, e ele para de seguir os sabores */
   valorManual: boolean
 }
 const vazio = (): Rascunho => ({
@@ -151,8 +151,10 @@ export default function Vendas({ products }: { products: Product[] }) {
       qtds: Object.fromEntries(
         v.produtos.filter((i) => i.productId !== null)
           .map((i) => [i.productId as number, i.quantity])),
-      valorManual: true,   // venda que ja existe: respeita o valor que voce escolheu
-    }, true)   // venda que ja existe: nao mexe na taxa que voce escolheu
+      // o valor salvo fica como esta ate voce mexer nos sabores; ai ele passa a
+      // seguir a soma, igual a uma venda nova (digitar no campo volta a travar)
+      valorManual: false,
+    }, true)  // venda que ja existe: nao mexe na taxa que voce escolheu
   }
 
   const apagar = async (v: VendaGeral) => {
