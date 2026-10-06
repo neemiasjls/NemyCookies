@@ -16,10 +16,12 @@ com o selo do estabelecimento, e só pode ser editada ou apagada pela aba Fiado.
 ### A venda geral é registrada pelos sabores, não por um valor digitado
 Escolhem-se os sabores e o valor se calcula. O valor continua editável; se ele fugir
 da soma dos sabores, a tela avisa e respeita o digitado.
+Ao editar uma venda já registrada, o valor salvo fica como está até mexer nos sabores;
+mexeu, ele passa a ser a soma deles (digitar no campo volta a travar, como na venda nova).
 - Por quê: gera dado de qual sabor vende; às vezes se cobra diferente da tabela.
-- Onde: `Vendas.tsx`, `general_sale_items`
+- Onde: `Vendas.tsx`, `general_sale_items`; `editar` abre com `valorManual: false`
 - Antes: as 180 vendas importadas da planilha têm só o total, sem itens.
-- Fonte: dono · Status: confirmado · Atualizado: 2026-09-04
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-01
 
 ## Entrega
 
@@ -49,14 +51,38 @@ parte, sem edição ali.
 
 ## Pagamento
 
-### Formas de pagamento: dinheiro, Pix, cartão débito, cartão crédito
-Cartão abre a escolha débito/crédito porque a taxa é diferente.
+### Formas de pagamento: dinheiro, Pix e cartão (débito, crédito ou outro)
+Cartão abre a escolha débito/crédito/outro porque a taxa é diferente.
 - Onde: tabela `payment_methods`
 - Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
 
-### Maquininha InfinitePay: crédito 4%, débito 2%
-Os percentuais ficam em Precificação → Maquininha e podem mudar.
-- Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
+### Maquininha InfinitePay: crédito 3,26%, débito 1,39%
+Numa venda de R$ 100, a taxa é R$ 3,26 no crédito e R$ 1,39 no débito (percentual
+simples sobre o valor). Os percentuais ficam em Precificação → Maquininha
+(`payment_methods.fee_percent`) e podem mudar.
+- Por quê: valores que a maquininha mostra com a opção de repassar a taxa ligada.
+- Onde: `payment_methods`; editados por `forma_pagamento_taxa`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
+
+### Com cartão, quem paga a taxa é o dono
+O cliente paga o valor da venda e a taxa sai do que o dono recebe: venda de R$ 100 no
+crédito rende R$ 96,74. Por isso a taxa é descontada do recebido, não somada ao cobrado.
+- Onde: `venda_salvar` (`payment_fee`), `taxaPrevista` em `Vendas.tsx`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
+
+### Escolher cartão na venda desconta a taxa sozinho
+Ao marcar débito ou crédito, a tela mostra quanto a maquininha fica e quanto se recebe,
+e a venda grava a taxa calculada, sem digitar nada.
+- Onde: `taxaPrevista` em `Vendas.tsx` (prévia); `venda_salvar` grava `payment_fee`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
+
+### Cartão "Outro": digita-se o líquido que caiu
+Além de débito e crédito, o cartão tem "Outro": digita-se quanto caiu na conta e a taxa
+é o total da venda (cookies + entrega) menos esse valor. Não pode cair mais que o total.
+- Por quê: casos fora dos percentuais (parcelado, outra maquininha, repasse).
+- Onde: `Vendas.tsx` (campo `liquido`, botão só aparece se `payment_methods` tiver
+  `cartao_outro`); `venda_salvar(p_payment_fee)`; Edge Function `planilha` (`PAGAMENTOS`)
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
 
 ### A venda guarda a taxa já calculada, não o percentual
 Mudar o percentual vale só para vendas novas; o que já foi recebido não muda.
@@ -77,11 +103,19 @@ que o cookie saiu e, se diferente, "pago DD/MM".
   o detalhe usa `saleDate ?? soldAt`
 - Fonte: dono · Status: confirmado · Atualizado: 2026-09-04
 
+### O dia do pagamento de uma venda do fiado se corrige aqui também
+A linha do fiado em Vendas continua só de leitura, exceto o dia do pagamento (ícone de
+calendário). Venda lançada aqui não tem data de pagamento à parte: a data é a da venda,
+editada no lápis.
+- Onde: `salvarDiaPgto` em `Vendas.tsx`; regra completa em fiado.md
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
+
 ### Datas sempre no horário de Brasília
 Toda data "de hoje" vem de `hoje()`, fixo em America/Sao_Paulo, independente do aparelho.
 - Por quê: `toISOString()` é UTC; lançamentos depois das 21h caíam no dia seguinte.
-- Onde: `frontend/src/data.ts` (`hoje`, `dataBR`)
-- Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
+- Onde: `frontend/src/data.ts` (`hoje`, `dataBR`); no banco, `sales_all` tira o dia do
+  pagamento do fiado de `paid_at` em America/Sao_Paulo
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
 
 ## Listas e "a anotar"
 

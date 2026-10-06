@@ -48,8 +48,17 @@ A venda escolhe o cliente por busca, em vez de digitar o nome.
 ### Data da venda é o dia em que a pessoa anotou
 Os cookies ficam no estabelecimento; quem compra anota na hora. Essa é a data da
 venda (`tab_sales.sold_at`). A data de pagamento é o dia em que o dono dá baixa
-no fiado (`paid_at`).
+no fiado (`paid_at`), podendo ser corrigida para o dia em que recebeu o pagamento.
 - Fonte: dono · Status: confirmado · Atualizado: 2026-09-04
+
+### O dia do pagamento de uma venda quitada pode ser corrigido
+Na aba Fiado (cartão da venda paga, "Pago em … · editar") e na aba Vendas (ícone de
+calendário nas linhas do fiado) dá para trocar o dia do pagamento, sem mexer na data
+da venda, nos cookies, nos valores nem no "anotada". Aceita do dia da venda até hoje.
+- Por quê: às vezes a baixa é dada dias depois de receber.
+- Onde: `tab_set_payment_date()` (grava meio-dia de Brasília em `paid_at`), rota
+  `tab/:id/payment-date` da Edge Function `admin`, `setTabSalePaymentDate` em `api.ts`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
 
 ### A lista segue a data e a ordem de registro
 Data mais nova em cima; dentro do mesmo dia, o último registrado em cima.
