@@ -32,9 +32,11 @@ Migração ou Edge Function entra em produção ao ser aplicada. Mudança no fro
 aparece após o deploy acima.
 - Fonte: código · Status: inferido · Atualizado: 2026-09-04
 
-### Toda mudança vai ao ar junto com a entrega
-Mudança pronta é publicada no mesmo momento, sem esperar pedido.
-- Fonte: dono · Status: confirmado · Atualizado: 2026-09-03
+### Publicar só quando o dono pede
+Nada vai ao ar sem pedido do dono. Quando ele pede, sobe tudo o que está pronto: build
+conferido, banco (só aditivo), commits por assunto, push na `main` e deploy do site.
+- Por quê: o dono quer decidir o momento de colocar no ar.
+- Fonte: dono · Status: confirmado · Atualizado: 2026-09-30
 
 ### Mexer no banco sem bagunçar dados
 Mudanças no banco devem ser aditivas. Conferir contagens das tabelas antes e depois.
