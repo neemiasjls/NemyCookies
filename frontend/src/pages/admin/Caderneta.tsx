@@ -11,6 +11,7 @@ import SeletorEstabelecimento from '../../components/SeletorEstabelecimento'
 import SeletorCliente from '../../components/SeletorCliente'
 import Producao from './Producao'
 import WhatsAppIcon from '../../components/WhatsAppIcon'
+import { AvisoEstoque, EstoqueDoSabor } from '../../components/AvisoEstoque'
 import {
   Plus, Minus, Check, Trash2, Undo2, Loader2, CalendarDays,
   NotebookPen, HandCoins, X, MessageCircle, ChevronRight,
@@ -22,7 +23,11 @@ const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
  * Fiado de um estabelecimento por vez: cada um tem os proprios clientes,
  * o proprio "A receber" e a propria lista de vendas.
  */
-export default function Caderneta({ products }: { products: Product[] }) {
+export default function Caderneta({ products, onEstoqueMudou }: {
+  products: Product[]
+  /** a venda do fiado mexe no estoque: o painel recarrega os sabores */
+  onEstoqueMudou?: () => void
+}) {
   const estab = useEstabelecimento()
   const [sales, setSales] = useState<TabSale[]>([])
   const [summary, setSummary] = useState<TabSummaryRow[]>([])
@@ -112,7 +117,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
     try {
       await createTabSale({ customerId: pessoaId, items, soldAt: data, paid: jaPago })
       setPessoaId(null); setQtds({}); setJaPago(false); setData(hoje())
-      await carregar()
+      await carregar(); onEstoqueMudou?.()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erro ao registrar')
     } finally { setSalvando(false) }
@@ -326,7 +331,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
                         <button
                           onClick={async () => {
                             if (!confirm(`Excluir a venda de ${v.customerName} (${brl(v.total)})?`)) return
-                            await deleteTabSale(v.id); await carregar()
+                            await deleteTabSale(v.id); await carregar(); onEstoqueMudou?.()
                           }}
                           title="Excluir"
                           className="w-7 h-7 rounded-full text-ink-4 hover:bg-danger-bg hover:text-danger flex items-center justify-center transition-colors">
@@ -384,7 +389,8 @@ export default function Caderneta({ products }: { products: Product[] }) {
                 q > 0 ? 'border-brand bg-brand-soft' : 'border-line'
               }`}>
                 <p className="text-xs font-semibold text-ink truncate">{p.name.replace('Cookie ', '')}</p>
-                <p className="text-[11px] text-ink-3 mb-1.5">{brl(p.price)}</p>
+                <p className="text-[11px] text-ink-3">{brl(p.price)}</p>
+                <div className="mb-1.5"><EstoqueDoSabor p={p} qtd={q} /></div>
                 <div className="flex items-center justify-between">
                   <button onClick={() => mudarQtd(p.id, -1)} disabled={q === 0}
                     className="w-7 h-7 rounded-full bg-surface border border-line text-brand flex items-center justify-center disabled:opacity-30"
@@ -398,6 +404,7 @@ export default function Caderneta({ products }: { products: Product[] }) {
             )
           })}
         </div>
+        <div className="-mt-1 mb-3 empty:hidden"><AvisoEstoque products={products} qtds={qtds} /></div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div>

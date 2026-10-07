@@ -79,10 +79,15 @@ export default function AdminDashboard() {
 
   useEffect(() => { loadData() }, [filter])
 
+  /** Vendas e fiado descontam do estoque no banco: busca os sabores de novo. */
+  const recarregarProdutos = () => { getAdminProducts().then(setProducts).catch(() => {}) }
+
   const handleStatusUpdate = async (id: number, status: OrderStatus) => {
     const updated = await updateOrderStatus(id, status)
     setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
     setRecarregarProducao((n) => n + 1)   // o resumo do que assar muda junto
+    // pronto/entregue vira venda no fiado, que desconta do estoque
+    if (status === 'READY' || status === 'DELIVERED') recarregarProdutos()
   }
 
   /** Apaga o pedido. O banco devolve o estoque so quando o pedido ainda valia. */
@@ -263,7 +268,7 @@ Isso apaga de vez, nao da para desfazer.`)) return
           ))}
         </div>
         {/* ── ABA CADERNETA (fiado) ── */}
-        {tab === 'caderneta' && <Caderneta products={products} />}
+        {tab === 'caderneta' && <Caderneta products={products} onEstoqueMudou={recarregarProdutos} />}
 
         {/* ── ABA CLIENTES ── */}
         {tab === 'clientes' && <Clientes />}
@@ -272,7 +277,7 @@ Isso apaga de vez, nao da para desfazer.`)) return
         {tab === 'historico' && <Historico />}
 
         {/* ── ABAS DO SISTEMA DA PLANILHA ── */}
-        {tab === 'vendas'  && <Vendas products={products} />}
+        {tab === 'vendas'  && <Vendas products={products} onEstoqueMudou={recarregarProdutos} />}
         {tab === 'custos'  && <Custos />}
         {tab === 'compras' && <Compras />}
 

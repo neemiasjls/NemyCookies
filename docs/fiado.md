@@ -60,6 +60,12 @@ da venda, nos cookies, nos valores nem no "anotada". Aceita do dia da venda até
   `tab/:id/payment-date` da Edge Function `admin`, `setTabSalePaymentDate` em `api.ts`
 - Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
 
+### A venda do fiado desconta do estoque do sabor
+Registrar desconta, excluir devolve. Venda criada de um pedido que já descontou não
+desconta de novo. Regra completa em pedidos.md.
+- Onde: trigger em `tab_sale_items`; aviso na tela em `AvisoEstoque.tsx`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-07
+
 ### A lista segue a data e a ordem de registro
 Data mais nova em cima; dentro do mesmo dia, o último registrado em cima.
 - Onde: `tab_list()` (`order by sold_at desc, id desc` quando não filtra pagos)

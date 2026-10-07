@@ -23,6 +23,12 @@ mexeu, ele passa a ser a soma deles (digitar no campo volta a travar, como na ve
 - Antes: as 180 vendas importadas da planilha têm só o total, sem itens.
 - Fonte: dono · Status: confirmado · Atualizado: 2026-10-01
 
+### A venda desconta do estoque do sabor
+Salvar desconta, editar ajusta pela diferença e excluir devolve. Venda sem sabores
+(como as importadas da planilha) não mexe no estoque. Regra completa em pedidos.md.
+- Onde: trigger em `general_sale_items`; aviso na tela em `AvisoEstoque.tsx`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-07
+
 ## Entrega
 
 ### Taxa de entrega: R$ 4, grátis a partir de R$ 50

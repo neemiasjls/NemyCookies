@@ -10,6 +10,7 @@ import {
   ListaAAnotar, VendaAAnotar, FormaPagamento, MetodoPagamento, OrigemVenda,
 } from '../../types'
 import SeloEstabelecimento from '../../components/SeloEstabelecimento'
+import { AvisoEstoque, EstoqueDoSabor } from '../../components/AvisoEstoque'
 import { taxaDoPedido, FRETE_GRATIS_A_PARTIR_DE, GASTO_MEDIO_ENTREGA } from '../../entrega'
 import {
   Loader2, Plus, Minus, Trash2, Pencil, Truck, Store,
@@ -37,6 +38,8 @@ type Rascunho = {
   valorManual: boolean
   /** cartao "outro": quanto caiu na conta; a taxa e o total menos isso */
   liquido: string
+  /** na edicao, os sabores como estavam salvos: ja sairam do estoque e voltam antes de descontar */
+  qtdsSalvas?: Record<number, number>
 }
 const vazio = (): Rascunho => ({
   id: undefined, soldAt: hoje(), customerName: '', amount: '',
@@ -57,7 +60,11 @@ const liquidoDa = (v: VendaGeral) => Math.round((v.amount - (v.paymentFee ?? 0))
  * O fiado entra sozinho, mas so depois de quitado — fiado ainda nao e dinheiro.
  * Essas linhas levam o selo do estabelecimento e sao editadas la, no fiado.
  */
-export default function Vendas({ products }: { products: Product[] }) {
+export default function Vendas({ products, onEstoqueMudou }: {
+  products: Product[]
+  /** a venda mexe no estoque: o painel recarrega os sabores */
+  onEstoqueMudou?: () => void
+}) {
   const [d, setD] = useState<ListaVendas | null>(null)
   const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -157,7 +164,7 @@ export default function Vendas({ products }: { products: Product[] }) {
         paymentMethod: form.paymentMethod, paymentFee,
         items: Object.entries(form.qtds).map(([id, q]) => ({ productId: Number(id), quantity: q })),
       })
-      setForm(null); await carregar()
+      setForm(null); await carregar(); onEstoqueMudou?.()
     } catch (e) { alert(e instanceof Error ? e.message : 'Erro ao salvar') }
     finally { setSalvando(false) }
   }
@@ -172,6 +179,9 @@ export default function Vendas({ products }: { products: Product[] }) {
       deliveryMode: v.deliveryMode, kind: v.kind, notes: v.notes ?? '',
       paymentMethod: v.paymentMethod ?? null,
       qtds: Object.fromEntries(
+        v.produtos.filter((i) => i.productId !== null)
+          .map((i) => [i.productId as number, i.quantity])),
+      qtdsSalvas: Object.fromEntries(
         v.produtos.filter((i) => i.productId !== null)
           .map((i) => [i.productId as number, i.quantity])),
       // o valor salvo fica como esta ate voce mexer nos sabores; ai ele passa a
@@ -204,7 +214,7 @@ export default function Vendas({ products }: { products: Product[] }) {
   const apagar = async (v: VendaGeral) => {
     if (v.origin === 'fiado') { alert('Essa venda é do fiado. Apague pela aba Fiado.'); return }
     if (!confirm(`Excluir a venda de ${v.customerName} (${brl(v.amount)})?`)) return
-    try { await excluirVenda(v.id); await carregar() }
+    try { await excluirVenda(v.id); await carregar(); onEstoqueMudou?.() }
     catch (e) { alert(e instanceof Error ? e.message : 'Erro ao excluir') }
   }
 
@@ -595,6 +605,7 @@ export default function Vendas({ products }: { products: Product[] }) {
                       {p.name.replace('Cookie ', '')}
                       <span className="text-ink-3 font-normal"> · {brl(p.price)}</span>
                     </p>
+                    <EstoqueDoSabor p={p} qtd={q} jaTirado={form.qtdsSalvas?.[p.id] ?? 0} />
                     <div className="flex items-center justify-between mt-1">
                       <button onClick={() => mudarSabor(p.id, -1)} disabled={q === 0}
                         aria-label={`Tirar 1 ${p.name}`}
@@ -738,6 +749,8 @@ export default function Vendas({ products }: { products: Product[] }) {
           <input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
             placeholder="observação (opcional)"
             className="w-full mt-2 text-sm border border-line rounded-lg px-3 h-10 bg-surface text-ink" />
+
+          <AvisoEstoque products={products} qtds={form.qtds} jaTirado={form.qtdsSalvas} />
 
           {somaSabores > 0 && Math.abs(somaSabores - valorForm) > 0.009 && (
             <p className="text-[11px] text-warn mt-2">

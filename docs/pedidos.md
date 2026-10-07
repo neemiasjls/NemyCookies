@@ -47,6 +47,38 @@ se edita (reabrir antes).
 
 ## Estoque
 
+### Venda e fiado descontam do estoque de cookies
+Registrar uma venda na aba Vendas ou uma venda no fiado já tira os cookies do estoque
+do sabor; editar a venda ajusta pela diferença e excluir devolve. Vale também para
+consumo próprio e brinde. As vendas registradas antes de 2026-10-07 não foram
+reprocessadas: editar ou excluir uma delas não mexe no estoque.
+- Por quê: controle de estoque sem lançar a baixa à mão.
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-07
+
+### A baixa da venda é feita no banco, item por item
+Cada item de venda guarda quanto tirou de fato (`estoque_baixado`); só desconta se a
+venda estiver marcada (`baixa_estoque`, falso nas antigas). Inserir item desconta,
+trocar sabor ou quantidade devolve o antigo e desconta o novo, apagar devolve o que
+tirou. Vale para qualquer tela, porque fica em trigger.
+- Onde: `general_sale_items`/`tab_sale_items` (`estoque_baixado`),
+  `general_sales`/`tab_sales` (`baixa_estoque`), `venda_item_estoque()`,
+  `estoque_baixar()`, `estoque_devolver()`
+- Fonte: código · Status: inferido · Atualizado: 2026-10-07
+
+### O estoque nunca fica negativo
+Vender mais do que o estoque registra a venda e deixa o sabor em 0 (esgotado no site);
+a tela da venda avisa antes de salvar. A venda guarda só o que tirou, e é isso que
+volta ao editar ou excluir. Igual aos pedidos do site (`deduct_stock`).
+- Onde: `products.stock` (CHECK `stock >= 0`), `estoque_baixar()`, `AvisoEstoque.tsx`
+- Fonte: código · Status: inferido · Atualizado: 2026-10-07
+
+### Venda que nasce de pedido não desconta duas vezes
+Pedido manual não desconta; ao ficar Pronto/Entregue vira venda no fiado, e é essa
+venda que desconta, uma vez. Se o pedido já tinha descontado (pagamento aprovado ou
+dinheiro), a venda do fiado criada dele nasce sem baixa.
+- Onde: `pedido_para_caderneta()` (`stock_was_deducted`)
+- Fonte: código · Status: inferido · Atualizado: 2026-10-07
+
 ### Estoque só é devolvido uma vez
 Cancelar já devolve o estoque. Excluir ou editar só devolve se o pedido ainda tinha
 descontado. Pedido manual nasce pendente e nunca desconta; pedido do site desconta
