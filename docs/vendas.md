@@ -76,6 +76,16 @@ e a venda grava a taxa calculada, sem digitar nada.
 - Onde: `taxaPrevista` em `Vendas.tsx` (prévia); `venda_salvar` grava `payment_fee`
 - Fonte: dono · Status: confirmado · Atualizado: 2026-10-06
 
+### Venda no cartão vale pelo líquido, já sem a taxa
+Venda em débito, crédito ou outro aparece e é anotada pelo valor que caiu (total menos a
+taxa da maquininha): na lista de Vendas, no total do grupo e no "A anotar". Logo depois de
+salvar, a venda nova já mostra o líquido. Ex.: R$ 18,00 no débito vira R$ 17,75.
+- Por quê: o que interessa é o dinheiro que de fato entrou.
+- Onde: `liquidoDa` em `Vendas.tsx` (`vendas_listar` manda o bruto); `vendas_a_anotar()`
+  devolve `valor`/`total` já sem `payment_fee` e a chave `taxaCartao`. O resumo
+  financeiro segue bruto em "Entrou", com a maquininha em "Saiu".
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-07
+
 ### Cartão "Outro": digita-se o líquido que caiu
 Além de débito e crédito, o cartão tem "Outro": digita-se quanto caiu na conta e a taxa
 é o total da venda (cookies + entrega) menos esse valor. Não pode cair mais que o total.
@@ -128,11 +138,12 @@ Ordem: venda mais recente de cada pessoa em cima.
 Seção da aba Vendas com tudo que ainda não foi para a planilha: vendas gerais e vendas
 de fiado já pagas. O botão copia uma linha por pessoa:
 `cookie <nome em minúsculas>` + TAB + `<total com vírgula>`; o total soma cookies e
-taxa de entrega.
-- Por quê: é o formato da planilha pessoal; a taxa faz parte do que a pessoa pagou.
+taxa de entrega, menos a taxa do cartão quando houver.
+- Por quê: é o formato da planilha pessoal; a taxa de entrega faz parte do que a pessoa
+  pagou, e a do cartão não chega ao dono.
 - Onde: `vendas_a_anotar()`, `copiarParaPlanilha` em `Vendas.tsx`
 - Antes: as 180 vendas importadas nasceram marcadas como anotadas (já estavam na planilha).
-- Fonte: dono · Status: confirmado · Atualizado: 2026-09-05
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-07
 
 ### O nome na planilha leva o estabelecimento, exceto no principal
 Cliente de fiado do principal sai como `cookie <nome>`; dos outros estabelecimentos,

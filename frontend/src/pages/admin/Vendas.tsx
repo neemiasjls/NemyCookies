@@ -46,6 +46,13 @@ const vazio = (): Rascunho => ({
 })
 
 /**
+ * Quanto a venda vale na lista: no cartao, ja sem a taxa da maquininha (e o que
+ * caiu na conta). A taxa de entrega continua a parte, como sempre foi mostrada.
+ * Fiado, dinheiro e Pix tem paymentFee zero, entao nao mudam.
+ */
+const liquidoDa = (v: VendaGeral) => Math.round((v.amount - (v.paymentFee ?? 0)) * 100) / 100
+
+/**
  * Venda geral: o que veio da planilha mais o que voce lancar aqui.
  * O fiado entra sozinho, mas so depois de quitado — fiado ainda nao e dinheiro.
  * Essas linhas levam o selo do estabelecimento e sao editadas la, no fiado.
@@ -279,7 +286,7 @@ export default function Vendas({ products }: { products: Product[] }) {
       const g = mapa.get(v.customerName)
       if (g) {
         g.itens.push(v)
-        g.total += v.amount
+        g.total += liquidoDa(v)
         if (v.origin === 'fiado') g.estabelecimento ??= v.estabelecimento
         const dataDaVenda = v.saleDate ?? v.soldAt
         if ((dataDaVenda ?? '') > (g.ultima ?? '')) g.ultima = dataDaVenda
@@ -289,7 +296,7 @@ export default function Vendas({ products }: { products: Product[] }) {
         mapa.set(v.customerName, {
           chave: v.customerName, nome: v.customerName, ultima: v.saleDate ?? v.soldAt,
           pagoEm: v.soldAt, pagamentosVariados: false,
-          itens: [v], total: v.amount,
+          itens: [v], total: liquidoDa(v),
           estabelecimento: v.origin === 'fiado' ? v.estabelecimento : undefined,
         })
       }
@@ -354,7 +361,10 @@ export default function Vendas({ products }: { products: Product[] }) {
                 </p>
               </div>
 
-              <span className="text-sm font-bold text-ink tabular-nums flex-shrink-0 w-20 text-right">{brl(v.amount)}</span>
+              <span className="text-sm font-bold text-ink tabular-nums flex-shrink-0 w-20 text-right"
+                title={v.paymentFee > 0 ? `${brl(v.amount)} menos ${brl(v.paymentFee)} da maquininha` : undefined}>
+                {brl(liquidoDa(v))}
+              </span>
               <div className="flex items-center gap-1 flex-shrink-0 w-[52px] justify-end">
                 {v.origin === 'geral' && (
                   <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
@@ -506,9 +516,13 @@ export default function Vendas({ products }: { products: Product[] }) {
                           <span className="text-ink-2 flex-1 min-w-0 truncate">
                             cookie {v.customerName.toLowerCase()}
                           </span>
-                          {v.taxa > 0 && (
+                          {(v.taxa > 0 || (v.taxaCartao ?? 0) > 0) && (
                             <span className="text-[11px] text-ink-3 tabular-nums flex-shrink-0 hidden sm:inline">
-                              {brl(v.cookies)} + {brl(v.taxa)} entrega
+                              {brl(v.cookies)}
+                              {v.taxa > 0 && ` + ${brl(v.taxa)} entrega`}
+                              {(v.taxaCartao ?? 0) > 0 && (
+                                <span className="text-warn"> − {brl(v.taxaCartao ?? 0)} maquininha</span>
+                              )}
                             </span>
                           )}
                           <span className="font-bold text-ink tabular-nums w-20 text-right flex-shrink-0">
@@ -531,7 +545,8 @@ export default function Vendas({ products }: { products: Product[] }) {
 
           <p className="px-4 py-2.5 text-[11px] text-ink-2 bg-surface-2 border-t border-line-soft">
             O botão copia uma linha por pessoa, com as vendas dela somadas e a taxa de
-            entrega já dentro do valor. A ordem é da compra mais antiga para a mais nova.
+            entrega já dentro do valor; no cartão, já sem a taxa da maquininha. A ordem é
+            da compra mais antiga para a mais nova.
           </p>
         </div>
       )}

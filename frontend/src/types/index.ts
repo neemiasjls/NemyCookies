@@ -368,7 +368,9 @@ export interface VendaAAnotar {
   customerName: string
   cookies: number
   taxa: number
-  /** cookies + taxa: e assim que a venda entra na planilha */
+  /** taxa da maquininha (cartao); some enquanto o banco nao manda */
+  taxaCartao?: number
+  /** cookies + taxa - taxa do cartao: e assim que a venda entra na planilha */
   valor: number
 }
 
