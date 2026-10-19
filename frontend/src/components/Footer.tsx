@@ -1,8 +1,6 @@
 import { MapPin } from 'lucide-react'
 import WhatsAppIcon from './WhatsAppIcon'
-
-const INSTAGRAM = 'https://instagram.com/nemycookies'
-const WHATSAPP = 'https://wa.me/5514998218858'
+import { INSTAGRAM, WHATSAPP } from '../contato'
 
 /* O lucide nao inclui icones de marca */
 function InstagramIcon({ size = 16 }: { size?: number }) {
