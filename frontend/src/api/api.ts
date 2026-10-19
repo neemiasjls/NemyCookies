@@ -3,6 +3,7 @@ import {
   PixPaymentCreatedResponse, TabSale, TabSummaryRow, TabCustomer, Estabelecimento, OrigemVenda, ProductionSummary, Producao,
   AuditEntry, Custos, ListaCompras, ListaVendas, ResumoFinanceiro, ListaAAnotar,
   Compra, VendaGeral, CategoriaCompra, TipoVenda, ModoEntrega, FormaPagamento, MetodoPagamento,
+  PainelFidelidade, MovimentoPontos, SaldosFidelidade, ConviteCliente,
 } from '../types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
@@ -149,8 +150,53 @@ export const getPixStatus = (paymentId: number): Promise<{ status: string; exter
   request<{ status: string; orderId: number | null }>(`${FN}/payment-status?paymentId=${paymentId}`)
     .then((r) => ({ status: r.status, externalReference: r.orderId ? String(r.orderId) : '' }))
 
+// ── Area da cliente (fidelidade) ──
+// Sessao propria, separada do admin: o token so serve na Edge Function /fidelidade.
+export const FIDELIDADE_TOKEN = 'fidelidade_token'
+
+async function requestCliente<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const token = localStorage.getItem(FIDELIDADE_TOKEN)
+  return send<T>(url, init, token ? `Bearer ${token}` : `Bearer ${SUPABASE_KEY}`)
+}
+
+export const entrarFidelidade = (telefone: string, senha: string): Promise<{ token: string; nome: string }> =>
+  request(`${FN}/fidelidade/login`, { method: 'POST', body: JSON.stringify({ telefone, senha }) })
+
+/** Primeiro nome de quem foi convidada; erro = convite invalido ou vencido. */
+export const getConvite = (codigo: string): Promise<{ nome: string }> =>
+  request(`${FN}/fidelidade/convite${query({ c: codigo })}`)
+
+/** Usa o convite: ela cria a propria senha e ja entra. */
+export const criarSenhaPeloConvite = (codigo: string, telefone: string, senha: string): Promise<{ token: string; nome: string }> =>
+  request(`${FN}/fidelidade/primeiro-acesso`, { method: 'POST', body: JSON.stringify({ codigo, telefone, senha }) })
+
+export const getPainelFidelidade = (): Promise<PainelFidelidade> =>
+  requestCliente<{
+    nome: string; pontos: number; pontos_por_real: number; validade_dias: number
+    vence_em: string | null; a_liberar: number
+    devendo: string; em_aberto: { id: number; data: string; itens: string | null; total: string; pago: string }[]
+    pix: { chave: string | null; nome: string | null } | null
+    cookies: { product_id: number; nome: string; imagem: string | null; pontos: number }[]
+    extrato: MovimentoPontos[]
+  }>(`${FN}/fidelidade/painel`).then((r) => ({
+    nome: r.nome,
+    pontos: r.pontos,
+    pontosPorReal: Number(r.pontos_por_real),
+    validadeDias: r.validade_dias,
+    venceEm: r.vence_em ?? undefined,
+    aLiberar: r.a_liberar,
+    devendo: Number(r.devendo),
+    emAberto: r.em_aberto.map((c) => ({ id: c.id, data: c.data, itens: c.itens ?? '', total: Number(c.total), pago: Number(c.pago) })),
+    pix: r.pix?.chave ? { chave: r.pix.chave, nome: r.pix.nome ?? '' } : undefined,
+    cookies: r.cookies.map((c) => ({ productId: c.product_id, nome: c.nome, imagem: c.imagem ?? undefined, pontos: c.pontos })),
+    extrato: r.extrato,
+  }))
+
+export const sairFidelidade = (): Promise<{ ok: boolean }> =>
+  requestCliente(`${FN}/fidelidade/sair`, { method: 'POST' })
+
 // ── Admin ──
-export const adminLogin = (username: string, password: string): Promise<{ token: string }> =>
+export const adminLogin =(username: string, password: string): Promise<{ token: string }> =>
   request(`${FN}/admin/login`, { method: 'POST', body: JSON.stringify({ username, password }) })
 
 export const getAdminOrders = (status?: OrderStatus): Promise<OrderResponse[]> =>
@@ -386,6 +432,30 @@ export const setTabSaleAnnotated = (id: number, annotated: boolean): Promise<Tab
 /** Marca de uma vez todas as vendas pagas que ainda nao foram anotadas */
 export const annotateAllTabSales = (): Promise<{ anotadas: number }> =>
   requestAdmin(`${FN}/admin/tab/annotate-all`, { method: 'POST' })
+
+// ── Fidelidade no painel: pontos, troca por cookie e senha da cliente ──
+export const getSaldosFidelidade = (): Promise<SaldosFidelidade> =>
+  requestAdmin<{
+    clientes: { customer_id: number; pontos: number; tem_acesso: boolean; ultimo_acesso: string | null; convite_ate: string | null }[]
+    cookies: { product_id: number; pontos: number }[]
+  }>(`${FN}/admin/fidelidade`).then((r) => ({
+    clientes: new Map(r.clientes.map((c) => [c.customer_id, {
+      customerId: c.customer_id, pontos: c.pontos, temAcesso: c.tem_acesso, ultimoAcesso: c.ultimo_acesso ?? undefined,
+      conviteAte: c.convite_ate ?? undefined,
+    }])),
+    cookies: new Map(r.cookies.map((c) => [c.product_id, c.pontos])),
+  }))
+
+/** Um cookie da venda em aberto sai pelos pontos: o preco dele e abatido da venda. */
+export const trocarPorPontos = (saleId: number, productId: number): Promise<TabSale> =>
+  requestAdmin(`${FN}/admin/tab/${saleId}/pontos`, { method: 'POST', body: JSON.stringify({ productId }) })
+    .then(toTabSale)
+
+/** Convite para a cliente criar a senha (primeiro acesso ou senha esquecida). O codigo so vem aqui. */
+export const gerarConviteCliente = (customerId: number): Promise<ConviteCliente> =>
+  requestAdmin<{ customer_id: number; nome: string; telefone: string; codigo: string; expira_em: string }>(
+    `${FN}/admin/tab/customers/${customerId}/convite`, { method: 'POST' },
+  ).then((r) => ({ customerId: r.customer_id, nome: r.nome, telefone: r.telefone, codigo: r.codigo, expiraEm: r.expira_em }))
 
 // ── Historico (auditoria) ─────────────────────────────
 export const getHistory = (opts: { entity?: string; actor?: string; limit?: number } = {}): Promise<AuditEntry[]> => {

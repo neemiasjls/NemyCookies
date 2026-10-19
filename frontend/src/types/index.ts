@@ -161,6 +161,76 @@ export interface TabCustomer {
   ultimaCompra?: string
 }
 
+/* ---------- Fidelidade: pontos das clientes do fiado (docs/fidelidade.md) ---------- */
+export interface CookiePontos {
+  productId: number
+  nome: string
+  imagem?: string
+  /** pontos para trocar por um cookie desse sabor */
+  pontos: number
+}
+
+export interface MovimentoPontos {
+  data: string
+  tipo: 'ganho' | 'resgate' | 'vencido' | 'ajuste'
+  pontos: number
+  descricao: string
+}
+
+/** Tudo o que a pagina da cliente mostra */
+export interface PainelFidelidade {
+  nome: string
+  pontos: number
+  pontosPorReal: number
+  validadeDias: number
+  /** dia em que os pontos vencem se ela nao comprar ate la */
+  venceEm?: string
+  /** pontos que entram quando o fiado em aberto for pago */
+  aLiberar: number
+  /** fiado em aberto (com ou sem pontos) */
+  devendo: number
+  emAberto: CompraEmAberto[]
+  /** para pagar o fiado; so vem quando ela deve */
+  pix?: { chave: string; nome: string }
+  cookies: CookiePontos[]
+  extrato: MovimentoPontos[]
+}
+
+export interface CompraEmAberto {
+  id: number
+  data: string
+  itens: string
+  total: number
+  /** quanto ja pagou dessa compra */
+  pago: number
+}
+
+export interface PontosCliente {
+  customerId: number
+  pontos: number
+  /** ja criou a senha dela */
+  temAcesso: boolean
+  ultimoAcesso?: string
+  /** convite enviado e ainda nao usado: vale ate esse instante */
+  conviteAte?: string
+}
+
+export interface SaldosFidelidade {
+  /** por id da cliente; so as do estabelecimento principal participam */
+  clientes: Map<number, PontosCliente>
+  /** pontos de cada cookie, por id do produto */
+  cookies: Map<number, number>
+}
+
+/** Convite para a cliente criar a senha. O codigo so aparece ao ser gerado. */
+export interface ConviteCliente {
+  customerId: number
+  nome: string
+  telefone: string
+  codigo: string
+  expiraEm: string
+}
+
 export interface PixPaymentCreatedResponse {
   orderId: number
   paymentId: number

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { getProducts, getCategories } from '../api/api'
+import { getProducts, getCategories, FIDELIDADE_TOKEN } from '../api/api'
 import { Product, Category } from '../types'
 import ProductCard from '../components/ProductCard'
 import CartSidebar from '../components/CartSidebar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { useNavigate } from 'react-router-dom'
-import { Search, ShoppingBag, MapPin, Loader2, Truck, Cookie, CreditCard, WifiOff } from 'lucide-react'
+import { Search, ShoppingBag, MapPin, Loader2, Truck, Cookie, CreditCard, WifiOff, UserRound } from 'lucide-react'
 import ThemeToggle from '../components/ThemeToggle'
 
 export default function Home() {
@@ -69,6 +69,16 @@ export default function Home() {
           </div>
 
           <ThemeToggle />
+
+          {/* area da cliente do fiado (pontos); quem ja entrou vai direto para os pontos */}
+          <button
+            onClick={() => navigate(localStorage.getItem(FIDELIDADE_TOKEN) ? '/fidelidade' : '/entrar')}
+            aria-label="Área da cliente"
+            className="flex items-center gap-1.5 border border-brand-line text-ink-2 hover:text-brand hover:border-brand px-3 py-2 rounded-full text-sm font-semibold transition-colors flex-shrink-0"
+          >
+            <UserRound size={16} />
+            <span className="hidden sm:inline">{localStorage.getItem(FIDELIDADE_TOKEN) ? 'Meus pontos' : 'Entrar'}</span>
+          </button>
 
           <button
             onClick={() => navigate('/checkout')}

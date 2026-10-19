@@ -3,9 +3,10 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   getTabSales, getTabSummary, getTabCustomers, createTabSale, createTabCustomer,
   setTabSalePaid, setTabSalePaymentDate, deleteTabSale, addTabPayment,
+  getSaldosFidelidade, trocarPorPontos,
   payAllForCustomer, setTabSaleAnnotated, markCharged, TabStatus,
 } from '../../api/api'
-import { Product, TabSale, TabSummaryRow, TabCustomer } from '../../types'
+import { Product, TabSale, TabSummaryRow, TabCustomer, SaldosFidelidade } from '../../types'
 import { useEstabelecimento } from '../../hooks/useEstabelecimento'
 import SeletorEstabelecimento from '../../components/SeletorEstabelecimento'
 import SeletorCliente from '../../components/SeletorCliente'
@@ -14,7 +15,7 @@ import WhatsAppIcon from '../../components/WhatsAppIcon'
 import { AvisoEstoque, EstoqueDoSabor } from '../../components/AvisoEstoque'
 import {
   Plus, Minus, Check, Trash2, Undo2, Loader2, CalendarDays,
-  NotebookPen, HandCoins, X, MessageCircle, ChevronRight,
+  NotebookPen, HandCoins, X, MessageCircle, ChevronRight, Gift,
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
@@ -45,6 +46,8 @@ export default function Caderneta({ products, onEstoqueMudou }: {
   // vendas em aberto, guardadas a parte: o filtro da tela pode estar em outra aba
   const [abertas, setAbertas] = useState<TabSale[] | null>(null)
   const [buscandoVendas, setBuscandoVendas] = useState(false)
+  // pontos de fidelidade das clientes do principal (docs/fidelidade.md)
+  const [fidelidade, setFidelidade] = useState<SaldosFidelidade | null>(null)
 
   // formulario de venda
   const [pessoaId, setPessoaId] = useState<number | null>(null)
@@ -61,6 +64,7 @@ export default function Caderneta({ products, onEstoqueMudou }: {
         getTabSales(status, est), getTabSummary(est), getTabCustomers(est),
       ])
       estab.recarregar().catch(() => {})   // o "a receber" de cada chip
+      getSaldosFidelidade().then(setFidelidade).catch(() => setFidelidade(null))
       setSales(lista); setSummary(resumo); setCustomers(pessoas)
       // as vendas em aberto alimentam os dropdowns do "A receber".
       // Se voce esta numa aba de pagos com um dropdown aberto, busca elas a parte,
@@ -144,6 +148,24 @@ export default function Caderneta({ products, onEstoqueMudou }: {
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erro ao registrar o pagamento')
     } finally { setSalvandoParcial(false) }
+  }
+
+  // Troca por pontos: um cookie da venda em aberto sai de graca e o preco dele
+  // e abatido. Fica atras do icone de presente, so para quem tem pontos.
+  const [trocaId, setTrocaId] = useState<number | null>(null)
+  const [trocando, setTrocando] = useState(false)
+  const pontosDe = (customerId: number) => fidelidade?.clientes.get(customerId)?.pontos ?? 0
+
+  const trocar = async (v: TabSale, productId: number, nome: string, custo: number) => {
+    if (!confirm(`Trocar 1 ${nome} de ${v.customerName} por ${custo} pontos?`)) return
+    setTrocando(true)
+    try {
+      await trocarPorPontos(v.id, productId)
+      setTrocaId(null)
+      await carregar()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Erro ao trocar por pontos')
+    } finally { setTrocando(false) }
   }
 
   // Cobranca: o texto ja vem pronto do servidor junto do resumo
@@ -321,6 +343,15 @@ export default function Caderneta({ products, onEstoqueMudou }: {
                             <NotebookPen size={13} />
                           </button>
                         )}
+                        {!v.paid && pontosDe(v.customerId) > 0 && (
+                          <button onClick={() => setTrocaId(trocaId === v.id ? null : v.id)}
+                            title={`Trocar um cookie por pontos (${pontosDe(v.customerId)} pontos)`}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                              trocaId === v.id ? 'bg-brand-soft text-brand' : 'text-ink-4 hover:bg-brand-soft hover:text-brand'
+                            }`}>
+                            <Gift size={13} />
+                          </button>
+                        )}
                         {!v.paid && (
                           <button onClick={() => { setParcialId(v.id); setValorParcial('') }}
                             title="Recebeu só uma parte"
@@ -341,6 +372,29 @@ export default function Caderneta({ products, onEstoqueMudou }: {
                     )}
                   </div>
                 </div>
+                {trocaId === v.id && !v.paid && (
+                  <div className="mt-2 pt-2 border-t border-line-soft">
+                    <p className="text-[11px] text-ink-3 mb-1.5">
+                      {v.customerName} tem <b className="text-brand">{pontosDe(v.customerId)} pontos</b>. Qual cookie sai por pontos?
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {v.items.map((i) => {
+                        const custo = fidelidade?.cookies.get(i.productId) ?? 0
+                        const nome = i.productName.replace('Cookie ', '')
+                        const da = custo > 0 && pontosDe(v.customerId) >= custo && v.total - v.paidAmount >= i.unitPrice
+                        return (
+                          <button key={i.productId} disabled={!da || trocando}
+                            onClick={() => trocar(v, i.productId, nome, custo)}
+                            title={da ? `Sai de graça; abate ${brl(i.unitPrice)} da venda` : `Faltam ${custo - pontosDe(v.customerId)} pontos`}
+                            className="text-xs font-semibold px-2.5 py-1 rounded-full border border-brand-line text-brand bg-brand-soft
+                                       hover:bg-brand-line transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                            1 {nome} · {custo} pts
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
   )
 
@@ -451,6 +505,11 @@ export default function Caderneta({ products, onEstoqueMudou }: {
                       className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
                     <span className="text-sm text-ink truncate group-hover:text-brand transition-colors">{r.customerName}</span>
                     <span className="text-[11px] text-ink-3 flex-shrink-0">({r.vendasAbertas}x)</span>
+                    {pontosDe(r.customerId) > 0 && (
+                      <span title="Pontos de fidelidade" className="flex items-center gap-0.5 text-[11px] font-semibold text-brand flex-shrink-0">
+                        <Gift size={11} /> {pontosDe(r.customerId)}
+                      </span>
+                    )}
                   </button>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-sm font-bold text-ink tabular-nums">{brl(r.devendo)}</span>
