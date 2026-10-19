@@ -16,6 +16,7 @@ exceções e decisões. Leia só o arquivo do assunto em que vai mexer.
 | Vendas | [vendas.md](vendas.md) | `Vendas.tsx`, `entrega.ts`, `sales_all`, `vendas_a_anotar`, `general_sales`, `payment_methods`, Edge Function `planilha` |
 | Fiado (estabelecimentos, clientes, caderneta) | [fiado.md](fiado.md) | `Caderneta.tsx`, `Clientes.tsx`, `SeletorEstabelecimento.tsx`, `useEstabelecimento.ts`, `fiado_*`, `tab_*`, Edge Function `admin` |
 | Pedidos, estoque e produção | [pedidos.md](pedidos.md) | `Checkout.tsx`, `PedidoManual.tsx`, `AdminDashboard.tsx`, `Producao.tsx`, `orders`, `pedido_*`, `producao_*`, Edge Functions `checkout`, `payment-status`, `mp-webhook` |
+| Fidelidade (login da cliente, pontos) | [fidelidade.md](fidelidade.md) | `Entrar.tsx`, `Fidelidade.tsx`, `fidelidade_*`, Edge Function `fidelidade`, pontos, resgate, validade |
 | Plataforma | [plataforma.md](plataforma.md) | deploy, Supabase, Cloudflare, `_headers`, CSP, `data.ts`, fuso, views, `revoke` |
 | Pendências e divergências | [pendencias.md](pendencias.md) | dúvidas em aberto, regras a confirmar |
 

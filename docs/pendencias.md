@@ -22,6 +22,17 @@ Nove vendas foram lançadas quando o painel ainda gravava datas em UTC. Foram ma
 como estão, de propósito, até o dono decidir.
 - Atualizado: 2026-09-05
 
+### Venda com cookie trocado por pontos aparece em Vendas pelo total cheio
+O cookie que sai por pontos entra como pagamento parcial da venda do fiado. Em Vendas,
+no "a anotar" e na planilha a venda segue com o total cheio, embora o dinheiro recebido
+seja menor. Decidir se mostra o valor recebido ou uma linha de desconto. Ver fidelidade.md.
+- Atualizado: 2026-10-19
+
+### Escala dos pontos e página inicial a confirmar
+Escala de 1 ponto por real (cookie de R$ 18 = 200 pontos) e a página inicial seguir
+aberta para pedidos, com o login só como botão. Ver fidelidade.md.
+- Atualizado: 2026-10-19
+
 ## Divergências
 
 ### Ordem da cópia do "a anotar": data da venda ou do pagamento?

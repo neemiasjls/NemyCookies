@@ -5,7 +5,7 @@
 ### Frontend no Cloudflare Pages, backend no Supabase
 - Site: projeto `nemycookies` no Cloudflare Pages (https://nemycookies.pages.dev).
 - Banco, funções SQL e Edge Functions (`admin`, `planilha`, `checkout`,
-  `payment-status`, `mp-webhook`): Supabase, projeto `psnytvofbmrxrvofycds`.
+  `payment-status`, `mp-webhook`, `fidelidade`): Supabase, projeto `psnytvofbmrxrvofycds`.
 - GitHub: só o código. Nenhum dado do negócio fica no repositório.
 - Fonte: banco/código · Status: inferido · Atualizado: 2026-09-29
 
@@ -70,6 +70,12 @@ Login com senha em hash bcrypt, limite de tentativas por usuário e IP, e token
 assinado no servidor. Toda rota do painel exige o token.
 - Onde: Edge Function `admin`, `verify_admin()`, `login_bloqueado()`
 - Fonte: código · Status: inferido · Atualizado: 2026-09-08
+
+### A área da cliente autentica pela Edge Function fidelidade
+Sessão separada da do painel: token aleatório no navegador (`fidelidade_token`), só o
+hash no banco. Usa o mesmo limite de tentativas do painel. Ver fidelidade.md.
+- Onde: Edge Function `fidelidade` (`verify_jwt` desligado, como a `admin`)
+- Fonte: código · Status: inferido · Atualizado: 2026-10-19
 
 ### Segredos ficam fora do código
 Chaves do Supabase e do Mercado Pago no `frontend/.env` (fora do git) e nos secrets das
