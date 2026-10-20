@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   getTabSales, getTabSummary, getTabCustomers, createTabSale, createTabCustomer,
   setTabSalePaid, setTabSalePaymentDate, deleteTabSale, addTabPayment,
-  getSaldosFidelidade, trocarPorPontos,
+  getSaldosFidelidade,
   payAllForCustomer, setTabSaleAnnotated, markCharged, TabStatus,
 } from '../../api/api'
 import { Product, TabSale, TabSummaryRow, TabCustomer, SaldosFidelidade } from '../../types'
@@ -116,11 +116,11 @@ export default function Caderneta({ products, onEstoqueMudou }: {
   const registrar = async () => {
     const items = Object.entries(qtds).map(([id, q]) => ({ productId: Number(id), quantity: q }))
     if (!pessoaId) return alert('Selecione a pessoa')
-    if (!items.length) return alert('Selecione ao menos um cookie')
+    if (!items.length && !resgates.length) return alert('Selecione ao menos um cookie')
     setSalvando(true)
     try {
-      await createTabSale({ customerId: pessoaId, items, soldAt: data, paid: jaPago })
-      setPessoaId(null); setQtds({}); setJaPago(false); setData(hoje())
+      await createTabSale({ customerId: pessoaId, items, soldAt: data, paid: jaPago, resgates })
+      setPessoaId(null); setQtds({}); setJaPago(false); setData(hoje()); setResgates([])
       await carregar(); onEstoqueMudou?.()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Erro ao registrar')
@@ -150,23 +150,19 @@ export default function Caderneta({ products, onEstoqueMudou }: {
     } finally { setSalvandoParcial(false) }
   }
 
-  // Troca por pontos: um cookie da venda em aberto sai de graca e o preco dele
-  // e abatido. Fica atras do icone de presente, so para quem tem pontos.
-  const [trocaId, setTrocaId] = useState<number | null>(null)
-  const [trocando, setTrocando] = useState(false)
+  // Troca por pontos: escolhida ao registrar a venda. So aparecem os cookies que o
+  // saldo dela ja paga; cada um entra na venda de graca (docs/fidelidade.md).
   const pontosDe = (customerId: number) => fidelidade?.clientes.get(customerId)?.pontos ?? 0
-
-  const trocar = async (v: TabSale, productId: number, nome: string, custo: number) => {
-    if (!confirm(`Trocar 1 ${nome} de ${v.customerName} por ${custo} pontos?`)) return
-    setTrocando(true)
-    try {
-      await trocarPorPontos(v.id, productId)
-      setTrocaId(null)
-      await carregar()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Erro ao trocar por pontos')
-    } finally { setTrocando(false) }
-  }
+  const custoDe = (productId: number) => fidelidade?.cookies.get(productId) ?? 0
+  const [resgates, setResgates] = useState<number[]>([])
+  const pontosLivres = pessoaId ? pontosDe(pessoaId) - resgates.reduce((t, id) => t + custoDe(id), 0) : 0
+  const cookiesQueDa = products.filter((p) => custoDe(p.id) > 0 && custoDe(p.id) <= pontosLivres)
+    .sort((a, b) => custoDe(a.id) - custoDe(b.id))
+  const custoMinimo = Math.min(...products.map((p) => custoDe(p.id)).filter((c) => c > 0), Infinity)
+  // o cookie gratis tambem sai do estoque: entra no aviso de falta
+  const qtdsComTrocas = useMemo(() => resgates.reduce((q, id) => ({ ...q, [id]: (q[id] ?? 0) + 1 }), { ...qtds }), [qtds, resgates])
+  // trocar de pessoa desfaz a troca escolhida
+  useEffect(() => { setResgates([]) }, [pessoaId])
 
   // Cobranca: o texto ja vem pronto do servidor junto do resumo
   // (a chave Pix nunca fica no codigo do site).
@@ -343,15 +339,6 @@ export default function Caderneta({ products, onEstoqueMudou }: {
                             <NotebookPen size={13} />
                           </button>
                         )}
-                        {!v.paid && pontosDe(v.customerId) > 0 && (
-                          <button onClick={() => setTrocaId(trocaId === v.id ? null : v.id)}
-                            title={`Trocar um cookie por pontos (${pontosDe(v.customerId)} pontos)`}
-                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                              trocaId === v.id ? 'bg-brand-soft text-brand' : 'text-ink-4 hover:bg-brand-soft hover:text-brand'
-                            }`}>
-                            <Gift size={13} />
-                          </button>
-                        )}
                         {!v.paid && (
                           <button onClick={() => { setParcialId(v.id); setValorParcial('') }}
                             title="Recebeu só uma parte"
@@ -372,29 +359,6 @@ export default function Caderneta({ products, onEstoqueMudou }: {
                     )}
                   </div>
                 </div>
-                {trocaId === v.id && !v.paid && (
-                  <div className="mt-2 pt-2 border-t border-line-soft">
-                    <p className="text-[11px] text-ink-3 mb-1.5">
-                      {v.customerName} tem <b className="text-brand">{pontosDe(v.customerId)} pontos</b>. Qual cookie sai por pontos?
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {v.items.map((i) => {
-                        const custo = fidelidade?.cookies.get(i.productId) ?? 0
-                        const nome = i.productName.replace('Cookie ', '')
-                        const da = custo > 0 && pontosDe(v.customerId) >= custo && v.total - v.paidAmount >= i.unitPrice
-                        return (
-                          <button key={i.productId} disabled={!da || trocando}
-                            onClick={() => trocar(v, i.productId, nome, custo)}
-                            title={da ? `Sai de graça; abate ${brl(i.unitPrice)} da venda` : `Faltam ${custo - pontosDe(v.customerId)} pontos`}
-                            className="text-xs font-semibold px-2.5 py-1 rounded-full border border-brand-line text-brand bg-brand-soft
-                                       hover:bg-brand-line transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                            1 {nome} · {custo} pts
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
   )
 
@@ -458,7 +422,7 @@ export default function Caderneta({ products, onEstoqueMudou }: {
             )
           })}
         </div>
-        <div className="-mt-1 mb-3 empty:hidden"><AvisoEstoque products={products} qtds={qtds} /></div>
+        <div className="-mt-1 mb-3 empty:hidden"><AvisoEstoque products={products} qtds={qtdsComTrocas} /></div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div>
@@ -471,6 +435,32 @@ export default function Caderneta({ products, onEstoqueMudou }: {
               className="w-4 h-4 accent-success-solid" />
             Já pagou
           </label>
+          {pessoaId && pontosDe(pessoaId) > 0 && (
+            <div className="mt-5 flex flex-wrap items-center gap-1.5 min-w-0">
+              <span className="flex items-center gap-1 text-xs font-semibold text-brand">
+                <Gift size={14} /> {pontosLivres} pts
+              </span>
+              {resgates.map((id, n) => {
+                const p = products.find((x) => x.id === id)
+                return (
+                  <button key={`${id}-${n}`} type="button" title="Tirar a troca"
+                    onClick={() => setResgates((r) => r.filter((_, j) => j !== n))}
+                    className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-success-bg border border-success-line text-success">
+                    1 {p?.name.replace('Cookie ', '')} grátis <X size={11} />
+                  </button>
+                )
+              })}
+              {cookiesQueDa.length > 0 ? cookiesQueDa.map((p) => (
+                <button key={p.id} type="button" onClick={() => setResgates((r) => [...r, p.id])}
+                  title={`Sai de graça por ${custoDe(p.id)} pontos`}
+                  className="text-xs font-semibold px-2 py-1 rounded-full border border-dashed border-brand-line text-brand hover:bg-brand-soft transition-colors">
+                  + {p.name.replace('Cookie ', '')} · {custoDe(p.id)}
+                </button>
+              )) : !resgates.length && (
+                <span className="text-[11px] text-ink-3">ainda não dá para trocar ({custoMinimo - pontosLivres} pts para um cookie)</span>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-3 ml-auto mt-5">
             <span className="font-bold text-brand text-lg tabular-nums">{brl(totalCarrinho)}</span>
             <button onClick={registrar} disabled={salvando}

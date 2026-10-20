@@ -211,7 +211,12 @@ export interface CompraEmAberto {
 
 export interface PontosCliente {
   customerId: number
+  nome: string
   pontos: number
+  /** pontos das compras em aberto, que entram quando ela pagar */
+  aReceber: number
+  /** dia em que os pontos vencem se ela nao comprar ate la */
+  venceEm?: string
   /** ja criou a senha dela */
   temAcesso: boolean
   ultimoAcesso?: string

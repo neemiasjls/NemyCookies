@@ -80,7 +80,8 @@ real e valor do ponto são configuráveis sem mexer no código.
 - Fonte: dono (9%, pontos) · Status: confirmado (9%) / a confirmar (escala de 1 ponto por real) · Atualizado: 2026-10-19
 
 ### Só venda do fiado paga e feita a partir do lançamento gera pontos
-Compras anteriores ao lançamento não contam (o programa começa do zero). Venda em
+Compras anteriores ao lançamento não contam (o programa começa do zero). O lançamento
+vale desde o início de 19/10/2026: as vendas desse dia contam. Venda em
 aberto não gera até ser quitada (assim fiado não pago não vira ponto, e os pontos
 "a liberar" puxam o pagamento). O lançamento é o instante gravado em
 `app_settings.fidelidade_inicio`: sem ele, nada gera pontos. Conta a venda registrada
@@ -92,12 +93,22 @@ criada (editar ou excluir o pedido depois não mexe nela nem nos pontos).
   `fidelidade_venda_mudou()`, `fidelidade_venda_conta()`, extrato `fidelidade_movimentos`
 - Fonte: dono · Status: confirmado · Atualizado: 2026-10-19
 
-### O resgate é de um cookie inteiro, aplicado pelo dono na venda do fiado
-A cliente avisa; o dono escolhe na venda qual cookie sai por pontos. O valor desse
-cookie é abatido da venda (como pagamento parcial) e não gera pontos. Desfazer a baixa
-ou excluir a venda devolve os pontos.
-- Onde: ícone de presente no cartão da venda em aberto (`Caderneta.tsx`),
-  `fidelidade_resgatar()`, rota `tab/:id/pontos` da Edge Function `admin`
+### O resgate é de um cookie inteiro, escolhido ao registrar a venda do fiado
+No formulário da venda, ao lado de "Já pagou", o dono marca qual cookie sai por pontos;
+só aparecem os sabores que o saldo dela já paga (com pontos para um Tradicional, só o
+Tradicional). O cookie entra na venda de graça e não gera pontos; não existe desconto
+parcial. Desfazer a baixa ou excluir a venda devolve os pontos.
+- Por quê: o resgate acontece na hora em que ela pega o cookie, não ao pagar.
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-19
+
+### A aba Pontos resume os pontos de cada cliente
+Terceira aba do grupo do fiado (Fiado, Clientes, Pontos): saldo, pontos pendentes, acesso
+e vencimento de cada cliente do principal.
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-19
+
+### Os pontos aparecem no Histórico
+Ganho, troca, perda (baixa desfeita ou venda excluída) e vencimento de pontos ficam no
+Histórico do painel.
 - Fonte: dono · Status: confirmado · Atualizado: 2026-10-19
 
 ### Os pontos zeram depois de 90 dias sem comprar

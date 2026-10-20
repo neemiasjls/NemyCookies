@@ -4,7 +4,7 @@ import { AuditEntry } from '../../types'
 import {
   Loader2, RefreshCw, User, Globe, Search,
   Wallet, NotebookPen, ShoppingBag, Package, UserRound, LogIn, ShieldAlert, Trash2, HandCoins, MessageCircle,
-  PackageCheck,
+  PackageCheck, Gift,
 } from 'lucide-react'
 
 /** Aparencia de cada tipo de acao no historico */
@@ -38,6 +38,13 @@ const ESTILO: Record<string, { Icon: typeof Wallet; cor: string; fundo: string }
   cliente_juntado:    { Icon: UserRound,    cor: 'text-info',     fundo: 'bg-info-bg' },
   login:              { Icon: LogIn,        cor: 'text-ink-2',     fundo: 'bg-surface-2' },
   login_falha:        { Icon: ShieldAlert,  cor: 'text-danger',      fundo: 'bg-danger-bg' },
+  pontos_ganhos:      { Icon: Gift,         cor: 'text-success',  fundo: 'bg-success-bg' },
+  pontos_resgate:     { Icon: Gift,         cor: 'text-brand',    fundo: 'bg-brand-soft' },
+  pontos_estornados:  { Icon: Gift,         cor: 'text-warn',     fundo: 'bg-warn-bg' },
+  pontos_devolvidos:  { Icon: Gift,         cor: 'text-info',     fundo: 'bg-info-bg' },
+  pontos_vencidos:    { Icon: Gift,         cor: 'text-danger',   fundo: 'bg-danger-bg' },
+  pontos_ajustados:   { Icon: Gift,         cor: 'text-info',     fundo: 'bg-info-bg' },
+  pontos_ajuste:      { Icon: Gift,         cor: 'text-info',     fundo: 'bg-info-bg' },
 }
 const PADRAO = { Icon: Wallet, cor: 'text-ink-2', fundo: 'bg-surface-2' }
 
@@ -48,6 +55,7 @@ const FILTROS = [
   { v: 'produto',  label: 'Estoque' },
   { v: 'producao', label: 'Produção' },
   { v: 'cliente',  label: 'Clientes' },
+  { v: 'pontos',   label: 'Pontos' },
   { v: 'acesso',   label: 'Acessos' },
 ]
 

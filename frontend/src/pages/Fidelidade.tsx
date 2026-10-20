@@ -7,6 +7,7 @@ import { dataBR } from '../data'
 import { WHATSAPP } from '../contato'
 import ThemeToggle from '../components/ThemeToggle'
 import WhatsAppIcon from '../components/WhatsAppIcon'
+import { BarraPontos, LegendaPontos } from '../components/BarraPontos'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 const pts = (n: number) => `${n.toLocaleString('pt-BR')} ${Math.abs(n) === 1 ? 'ponto' : 'pontos'}`
@@ -108,8 +109,8 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
                 </span>
                 <span className="text-orange-200/60 text-xs tabular-nums flex-shrink-0">{p.pontos}/{proximo.pontos}</span>
               </div>
-              <Barra valor={p.pontos} aReceber={p.aLiberar} total={proximo.pontos} escura />
-              {p.aLiberar > 0 && <Legenda escura />}
+              <BarraPontos valor={p.pontos} aReceber={p.aLiberar} total={proximo.pontos} escura />
+              {p.aLiberar > 0 && <LegendaPontos escura />}
               {p.aLiberar > 0 && p.pontos + p.aLiberar >= proximo.pontos && (
                 <p className="mt-2 text-[13px] font-semibold text-gold">
                   Pagando o que está em aberto, você já garante um {proximo.nome}!
@@ -150,7 +151,7 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
           ) : (
             <p className="text-xs text-ink-3 mt-0.5">Quanto custa cada sabor</p>
           )}
-          {p.aLiberar > 0 && <Legenda />}
+          {p.aLiberar > 0 && <LegendaPontos />}
         </div>
         <ul className="divide-y divide-line">
           {p.cookies.map((c) => {
@@ -169,7 +170,7 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
                     <span className="font-semibold text-sm text-ink truncate">{c.nome}</span>
                     <span className="text-sm font-bold text-ink tabular-nums flex-shrink-0">{c.pontos} pts</span>
                   </div>
-                  <Barra valor={p.pontos} aReceber={p.aLiberar} total={c.pontos} />
+                  <BarraPontos valor={p.pontos} aReceber={p.aLiberar} total={c.pontos} />
                   <p className={`text-[11px] mt-1 ${pronto ? 'text-success font-semibold' : 'text-ink-3'}`}>
                     {pronto
                       ? 'Já dá para trocar'
@@ -301,39 +302,6 @@ function LinhaExtrato({ m }: { m: MovimentoPontos }) {
         {entra ? '+' : '−'}{Math.abs(m.pontos).toLocaleString('pt-BR')}
       </span>
     </li>
-  )
-}
-
-const limite = (n: number) => Math.max(0, Math.min(100, n))
-/** Listras do trecho "a receber": deixa claro que esses pontos ainda nao entraram. */
-const LISTRAS = 'repeating-linear-gradient(135deg, transparent 0 3px, rgba(255,255,255,0.22) 3px 6px)'
-
-/** Dourado = pontos que ela ja tem; cinza listrado = pontos a receber (compras em aberto). */
-function Barra({ valor, total, aReceber = 0, escura }: { valor: number; total: number; aReceber?: number; escura?: boolean }) {
-  const pct = limite(total > 0 ? (valor / total) * 100 : 0)
-  const pctReceber = limite(total > 0 ? ((valor + aReceber) / total) * 100 : 0) - pct
-  return (
-    <div className={`mt-1.5 h-2 rounded-full overflow-hidden flex ${escura ? 'bg-white/15' : 'bg-surface-2'}`}
-         role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(valor, total)}>
-      <div className={`h-full transition-[width] duration-700 ${pct >= 100 ? 'bg-success-solid' : 'bg-gold'}`}
-           style={{ width: `${pct}%` }} />
-      {pctReceber > 0 && (
-        <div className={`h-full transition-[width] duration-700 ${escura ? 'bg-white/35' : 'bg-ink-4/60'}`}
-             style={{ width: `${pctReceber}%`, backgroundImage: LISTRAS }} />
-      )}
-    </div>
-  )
-}
-
-function Legenda({ escura }: { escura?: boolean }) {
-  return (
-    <p className={`mt-1.5 flex items-center gap-3 text-[11px] ${escura ? 'text-orange-100/70' : 'text-ink-3'}`}>
-      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gold" /> seus pontos</span>
-      <span className="flex items-center gap-1">
-        <span className={`w-2 h-2 rounded-full ${escura ? 'bg-white/35' : 'bg-ink-4/60'}`} style={{ backgroundImage: LISTRAS }} />
-        a receber
-      </span>
-    </p>
   )
 }
 

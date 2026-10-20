@@ -398,6 +398,8 @@ export const createTabSale = (data: {
   soldAt?: string
   notes?: string
   paid?: boolean
+  /** cookies trocados por pontos: um id de produto por cookie, entram de graca */
+  resgates?: number[]
 }): Promise<TabSale> =>
   requestAdmin(`${FN}/admin/tab`, { method: 'POST', body: JSON.stringify(data) }).then(toTabSale)
 
@@ -439,20 +441,19 @@ export const annotateAllTabSales = (): Promise<{ anotadas: number }> =>
 // ── Fidelidade no painel: pontos, troca por cookie e senha da cliente ──
 export const getSaldosFidelidade = (): Promise<SaldosFidelidade> =>
   requestAdmin<{
-    clientes: { customer_id: number; pontos: number; tem_acesso: boolean; ultimo_acesso: string | null; convite_ate: string | null }[]
+    clientes: {
+      customer_id: number; nome: string; pontos: number; a_receber: number; vence_em: string | null
+      tem_acesso: boolean; ultimo_acesso: string | null; convite_ate: string | null
+    }[]
     cookies: { product_id: number; pontos: number }[]
   }>(`${FN}/admin/fidelidade`).then((r) => ({
     clientes: new Map(r.clientes.map((c) => [c.customer_id, {
-      customerId: c.customer_id, pontos: c.pontos, temAcesso: c.tem_acesso, ultimoAcesso: c.ultimo_acesso ?? undefined,
+      customerId: c.customer_id, nome: c.nome, pontos: c.pontos, aReceber: c.a_receber ?? 0, venceEm: c.vence_em ?? undefined,
+      temAcesso: c.tem_acesso, ultimoAcesso: c.ultimo_acesso ?? undefined,
       conviteAte: c.convite_ate ?? undefined,
     }])),
     cookies: new Map(r.cookies.map((c) => [c.product_id, c.pontos])),
   }))
-
-/** Um cookie da venda em aberto sai pelos pontos: o preco dele e abatido da venda. */
-export const trocarPorPontos = (saleId: number, productId: number): Promise<TabSale> =>
-  requestAdmin(`${FN}/admin/tab/${saleId}/pontos`, { method: 'POST', body: JSON.stringify({ productId }) })
-    .then(toTabSale)
 
 /** Convite para a cliente criar a senha (primeiro acesso ou senha esquecida). O codigo so vem aqui. */
 export const gerarConviteCliente = (customerId: number): Promise<ConviteCliente> =>
