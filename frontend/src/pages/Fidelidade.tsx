@@ -262,8 +262,8 @@ function APagar({ p }: { p: PainelFidelidade }) {
               )}
               {c.conta && c.pontos > 0 ? (
                 <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-ink-2 bg-surface-2 border border-line px-1.5 py-0.5 rounded-full tabular-nums"
-                   title="Pontos a receber: entram quando essa compra for paga">
-                  <span className="w-1.5 h-1.5 rounded-full bg-ink-4" /> +{c.pontos} pts ao pagar
+                   title="Pontos pendentes: entram quando essa compra for paga">
+                  <span className="w-1.5 h-1.5 rounded-full bg-ink-4" /> {c.pontos} {c.pontos === 1 ? 'ponto pendente' : 'pontos pendentes'}
                 </p>
               ) : !c.conta && (
                 <p className="text-[11px] text-ink-4 mt-0.5">antes do programa de pontos</p>

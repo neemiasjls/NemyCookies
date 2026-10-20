@@ -29,7 +29,7 @@ ela vai direto para a página da fidelidade.
 ### A página da cliente mostra o fiado em aberto
 Quanto ela deve, cada compra em aberto (dia, cookies, valor, quanto já pagou) e a chave
 Pix para pagar. Mostra todo o fiado em aberto, inclusive o de antes do lançamento.
-Cada compra em aberto mostra "+N pts ao pagar" (ou "antes do programa de pontos"), e as
+Cada compra em aberto mostra "N pontos pendentes" (ou "antes do programa de pontos"), e as
 barras de progresso mostram esses pontos a receber num trecho cinza listrado depois do
 dourado (os que ela já tem). Eles só entram no saldo quando a compra é paga.
 - Onde: `fidelidade_painel()` (`devendo`, `em_aberto` com `pontos`/`conta`, `a_liberar`, `pix` de
