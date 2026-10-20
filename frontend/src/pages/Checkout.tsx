@@ -62,7 +62,7 @@ export default function Checkout() {
           <Cookie size={30} className="text-brand" />
         </div>
         <p className="text-ink-2 text-center">Sua sacola está vazia</p>
-        <button onClick={() => navigate('/')} className="bg-brand text-brand-ink px-8 py-3 rounded-full font-semibold text-base">
+        <button onClick={() => navigate('/delivery')} className="bg-brand text-brand-ink px-8 py-3 rounded-full font-semibold text-base">
           Ver Cardápio
         </button>
       </div>
@@ -188,7 +188,7 @@ export default function Checkout() {
       <div className="bg-shell text-shell-ink border-b border-shell-line py-3 px-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center gap-3">
           <button
-            onClick={() => step === 'payment' ? setStep('info') : navigate('/')}
+            onClick={() => step === 'payment' ? setStep('info') : navigate('/delivery')}
             className="text-shell-2 hover:text-shell-ink p-1 rounded-lg transition-colors"
             aria-label="Voltar"
           >
@@ -202,7 +202,7 @@ export default function Checkout() {
           </div>
 
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/delivery')}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             aria-label="Voltar para a página inicial"
           >

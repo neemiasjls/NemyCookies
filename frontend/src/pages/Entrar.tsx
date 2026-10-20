@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Eye, EyeOff, ShieldAlert } from 'lucide-react'
+import { Eye, EyeOff, ShieldAlert } from 'lucide-react'
 import { entrarFidelidade, FIDELIDADE_TOKEN } from '../api/api'
 import { maskPhone } from '../utils/masks'
 import { WHATSAPP } from '../contato'
@@ -41,9 +41,6 @@ export default function Entrar() {
         style={{ background: 'radial-gradient(closest-side, rgba(224,150,79,0.28), transparent)' }}
       />
 
-      <Link to="/" className="absolute top-4 left-4 z-10 flex items-center gap-1.5 text-sm text-ink-3 hover:text-brand transition-colors">
-        <ArrowLeft size={16} /> Cardápio
-      </Link>
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle variant="shell" />
       </div>

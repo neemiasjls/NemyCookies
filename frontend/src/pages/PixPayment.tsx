@@ -18,7 +18,7 @@ export default function PixPayment() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    if (!pixData) { navigate('/'); return }
+    if (!pixData) { navigate('/delivery'); return }
 
     timerRef.current = setInterval(() => {
       setSecondsLeft((s) => { if (s <= 1) { clearInterval(timerRef.current!); return 0 } return s - 1 })
@@ -68,7 +68,7 @@ export default function PixPayment() {
     <div className="min-h-screen bg-canvas flex flex-col items-center justify-center gap-4 px-4">
       <XCircle size={72} className="text-danger" strokeWidth={1.5} />
       <h1 className="font-display text-xl font-bold text-danger">Pagamento não realizado</h1>
-      <button onClick={() => navigate('/')} className="bg-brand text-brand-ink px-8 py-3 rounded-full font-semibold text-base">
+      <button onClick={() => navigate('/delivery')} className="bg-brand text-brand-ink px-8 py-3 rounded-full font-semibold text-base">
         Voltar ao cardápio
       </button>
     </div>
@@ -83,7 +83,7 @@ export default function PixPayment() {
           </button>
           <h1 className="font-display font-bold text-lg">Pagamento via Pix</h1>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/delivery')}
             className="ml-auto flex items-center gap-2 hover:opacity-80 transition-opacity"
             aria-label="Voltar para a página inicial"
           >

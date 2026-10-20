@@ -61,7 +61,7 @@ export default function PrimeiroAcesso() {
         style={{ background: 'radial-gradient(closest-side, rgba(224,150,79,0.28), transparent)' }}
       />
 
-      <Link to="/entrar" className="absolute top-4 left-4 z-10 flex items-center gap-1.5 text-sm text-ink-3 hover:text-brand transition-colors">
+      <Link to="/" className="absolute top-4 left-4 z-10 flex items-center gap-1.5 text-sm text-ink-3 hover:text-brand transition-colors">
         <ArrowLeft size={16} /> Entrar
       </Link>
       <div className="absolute top-4 right-4 z-10">

@@ -14,7 +14,7 @@ export default function OrderConfirmation() {
   return (
     <div className="min-h-screen bg-canvas flex flex-col items-center justify-center px-4 py-8">
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/delivery')}
         className="flex items-center gap-2 mb-6 hover:opacity-80 transition-opacity"
         aria-label="Voltar para a página inicial"
       >
@@ -44,7 +44,7 @@ export default function OrderConfirmation() {
           ))}
         </div>
 
-        <button onClick={() => navigate('/')}
+        <button onClick={() => navigate('/delivery')}
           className="w-full bg-brand text-brand-ink font-bold py-4 rounded-xl text-base active:bg-brand-strong transition-colors">
           Ver mais cookies
         </button>

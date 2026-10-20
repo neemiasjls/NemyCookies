@@ -49,7 +49,7 @@ export default function Home() {
       <nav className="bg-surface/85 backdrop-blur-md border-b border-line sticky top-0 z-30 shadow-card">
         <div className="max-w-6xl mx-auto px-3 py-2.5 flex items-center gap-3">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/delivery')}
             className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
             aria-label="Voltar para a página inicial"
           >
@@ -72,7 +72,7 @@ export default function Home() {
 
           {/* area da cliente do fiado (pontos); quem ja entrou vai direto para os pontos */}
           <button
-            onClick={() => navigate(localStorage.getItem(FIDELIDADE_TOKEN) ? '/fidelidade' : '/entrar')}
+            onClick={() => navigate(localStorage.getItem(FIDELIDADE_TOKEN) ? '/fidelidade' : '/')}
             aria-label="Área da cliente"
             className="flex items-center gap-1.5 border border-brand-line text-ink-2 hover:text-brand hover:border-brand px-3 py-2 rounded-full text-sm font-semibold transition-colors flex-shrink-0"
           >
