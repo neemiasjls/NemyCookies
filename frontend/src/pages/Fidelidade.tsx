@@ -12,7 +12,8 @@ const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 const pts = (n: number) => `${n.toLocaleString('pt-BR')} ${Math.abs(n) === 1 ? 'ponto' : 'pontos'}`
 
 /**
- * Area da cliente do fiado: pontos (nunca reais de cashback), o fiado em aberto e o Pix.
+ * Area da cliente: pontos (nunca reais de cashback), o que ela tem a pagar e o Pix.
+ * Para ela o site nunca escreve "fiado": e "a pagar" (docs/fidelidade.md).
  * Cada cookie tem um preco em pontos; a troca e feita pela loja na hora da compra.
  */
 export default function Fidelidade() {
@@ -34,7 +35,7 @@ export default function Fidelidade() {
   }
   useEffect(carregar, [])
 
-  if (!localStorage.getItem(FIDELIDADE_TOKEN) || sessaoAcabou) return <Navigate to="/entrar" replace />
+  if (!localStorage.getItem(FIDELIDADE_TOKEN) || sessaoAcabou) return <Navigate to="/" replace />
 
   const sair = async () => {
     try { await sairFidelidade() } catch { /* o token sai do navegador de qualquer jeito */ }
@@ -118,7 +119,7 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
           {p.aLiberar > 0 && (
             <p className="mt-4 flex items-start gap-2 text-[13px] text-orange-100/85">
               <Hourglass size={14} className="flex-shrink-0 mt-0.5 text-gold" />
-              <span>+{pts(p.aLiberar)} entram quando você acertar o fiado em aberto.</span>
+              <span>+{pts(p.aLiberar)} entram quando você pagar o que está em aberto.</span>
             </p>
           )}
           {p.venceEm && (
@@ -130,7 +131,7 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
         </div>
       </section>
 
-      <Fiado p={p} />
+      <APagar p={p} />
 
       {/* ---------- Cookies em pontos ---------- */}
       <section className="bg-surface border border-line rounded-2xl shadow-card overflow-hidden">
@@ -178,7 +179,7 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
         <ul className="mt-3 space-y-2.5 text-sm text-ink-2">
           <li className="flex gap-2.5"><Num n={1} /> Cada R$ 1 em cookies vale {porReal}. Os pontos entram quando a compra é paga.</li>
           <li className="flex gap-2.5"><Num n={2} /> Juntou o suficiente? Na hora de pegar seu cookie, avise que quer usar os pontos: ele sai de graça.</li>
-          <li className="flex gap-2.5"><Num n={3} /> Comprando pelo menos uma vez a cada {p.validadeDias} dias, seus pontos nunca vencem.</li>
+          <li className="flex gap-2.5"><Num n={3} /> Os pontos vencem em {p.validadeDias} dias. Cada compra renova o prazo: comprando pelo menos uma vez a cada {p.validadeDias} dias, você não perde nada.</li>
         </ul>
         <a href={WHATSAPP} target="_blank" rel="noopener noreferrer"
            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline">
@@ -201,8 +202,8 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
   )
 }
 
-/** Fiado em aberto: quanto ela deve, o que pegou em cada dia e o Pix para pagar. */
-function Fiado({ p }: { p: PainelFidelidade }) {
+/** O que ela tem a pagar: quanto, o que pegou em cada dia e o Pix. */
+function APagar({ p }: { p: PainelFidelidade }) {
   const [copiado, setCopiado] = useState(false)
 
   if (p.devendo <= 0) {
@@ -212,7 +213,7 @@ function Fiado({ p }: { p: PainelFidelidade }) {
           <Check size={17} strokeWidth={3} className="text-success" />
         </span>
         <div>
-          <p className="font-semibold text-sm text-ink">Fiado em dia</p>
+          <p className="font-semibold text-sm text-ink">Pagamento em dia</p>
           <p className="text-xs text-ink-3">Nada em aberto. Obrigado!</p>
         </div>
       </section>
@@ -229,7 +230,7 @@ function Fiado({ p }: { p: PainelFidelidade }) {
     <section className="bg-surface border border-line rounded-2xl shadow-card overflow-hidden">
       <div className="px-4 pt-4 pb-2 flex items-baseline justify-between gap-3">
         <h2 className="font-display font-bold text-ink flex items-center gap-2">
-          <NotebookText size={17} className="text-brand" /> Seu fiado
+          <NotebookText size={17} className="text-brand" /> A pagar
         </h2>
         <span className="text-right">
           <span className="block text-[11px] text-ink-3">em aberto</span>
