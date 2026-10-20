@@ -174,7 +174,7 @@ export const getPainelFidelidade = (): Promise<PainelFidelidade> =>
   requestCliente<{
     nome: string; pontos: number; pontos_por_real: number; validade_dias: number
     vence_em: string | null; a_liberar: number
-    devendo: string; em_aberto: { id: number; data: string; itens: string | null; total: string; pago: string }[]
+    devendo: string; em_aberto: { id: number; data: string; itens: string | null; total: string; pago: string; pontos: number; conta: boolean }[]
     pix: { chave: string | null; nome: string | null } | null
     cookies: { product_id: number; nome: string; imagem: string | null; pontos: number }[]
     extrato: MovimentoPontos[]
@@ -186,7 +186,10 @@ export const getPainelFidelidade = (): Promise<PainelFidelidade> =>
     venceEm: r.vence_em ?? undefined,
     aLiberar: r.a_liberar,
     devendo: Number(r.devendo),
-    emAberto: r.em_aberto.map((c) => ({ id: c.id, data: c.data, itens: c.itens ?? '', total: Number(c.total), pago: Number(c.pago) })),
+    emAberto: r.em_aberto.map((c) => ({
+      id: c.id, data: c.data, itens: c.itens ?? '', total: Number(c.total), pago: Number(c.pago),
+      pontos: c.pontos ?? 0, conta: !!c.conta,
+    })),
     pix: r.pix?.chave ? { chave: r.pix.chave, nome: r.pix.nome ?? '' } : undefined,
     cookies: r.cookies.map((c) => ({ productId: c.product_id, nome: c.nome, imagem: c.imagem ?? undefined, pontos: c.pontos })),
     extrato: r.extrato,

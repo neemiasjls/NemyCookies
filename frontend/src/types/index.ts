@@ -203,6 +203,10 @@ export interface CompraEmAberto {
   total: number
   /** quanto ja pagou dessa compra */
   pago: number
+  /** pontos que ela recebe quando essa compra for paga */
+  pontos: number
+  /** feita a partir do lancamento do programa (as de antes nao dao pontos) */
+  conta: boolean
 }
 
 export interface PontosCliente {

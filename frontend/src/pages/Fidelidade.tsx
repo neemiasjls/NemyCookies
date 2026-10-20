@@ -108,7 +108,13 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
                 </span>
                 <span className="text-orange-200/60 text-xs tabular-nums flex-shrink-0">{p.pontos}/{proximo.pontos}</span>
               </div>
-              <Barra valor={p.pontos} total={proximo.pontos} escura />
+              <Barra valor={p.pontos} aReceber={p.aLiberar} total={proximo.pontos} escura />
+              {p.aLiberar > 0 && <Legenda escura />}
+              {p.aLiberar > 0 && p.pontos + p.aLiberar >= proximo.pontos && (
+                <p className="mt-2 text-[13px] font-semibold text-gold">
+                  Pagando o que está em aberto, você já garante um {proximo.nome}!
+                </p>
+              )}
             </div>
           ) : p.cookies.length > 0 && (
             <p className="mt-5 flex items-center gap-2 text-sm font-semibold text-gold">
@@ -119,7 +125,7 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
           {p.aLiberar > 0 && (
             <p className="mt-4 flex items-start gap-2 text-[13px] text-orange-100/85">
               <Hourglass size={14} className="flex-shrink-0 mt-0.5 text-gold" />
-              <span>+{pts(p.aLiberar)} entram quando você pagar o que está em aberto.</span>
+              <span>+{pts(p.aLiberar)} a receber: entram quando você pagar o que está em aberto.</span>
             </p>
           )}
           {p.venceEm && (
@@ -144,6 +150,7 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
           ) : (
             <p className="text-xs text-ink-3 mt-0.5">Quanto custa cada sabor</p>
           )}
+          {p.aLiberar > 0 && <Legenda />}
         </div>
         <ul className="divide-y divide-line">
           {p.cookies.map((c) => {
@@ -162,9 +169,13 @@ function Conteudo({ p }: { p: PainelFidelidade }) {
                     <span className="font-semibold text-sm text-ink truncate">{c.nome}</span>
                     <span className="text-sm font-bold text-ink tabular-nums flex-shrink-0">{c.pontos} pts</span>
                   </div>
-                  <Barra valor={p.pontos} total={c.pontos} />
+                  <Barra valor={p.pontos} aReceber={p.aLiberar} total={c.pontos} />
                   <p className={`text-[11px] mt-1 ${pronto ? 'text-success font-semibold' : 'text-ink-3'}`}>
-                    {pronto ? 'Já dá para trocar' : `Faltam ${pts(c.pontos - p.pontos)}`}
+                    {pronto
+                      ? 'Já dá para trocar'
+                      : p.pontos + p.aLiberar >= c.pontos
+                        ? 'Pagando o que está em aberto, já dá para trocar'
+                        : `Faltam ${pts(c.pontos - p.pontos)}`}
                   </p>
                 </div>
               </li>
@@ -249,6 +260,14 @@ function APagar({ p }: { p: PainelFidelidade }) {
               {c.pago > 0 && (
                 <p className="text-[11px] text-ink-3 tabular-nums">pagou {brl(c.pago)} de {brl(c.total)}</p>
               )}
+              {c.conta && c.pontos > 0 ? (
+                <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-ink-2 bg-surface-2 border border-line px-1.5 py-0.5 rounded-full tabular-nums"
+                   title="Pontos a receber: entram quando essa compra for paga">
+                  <span className="w-1.5 h-1.5 rounded-full bg-ink-4" /> +{c.pontos} pts ao pagar
+                </p>
+              ) : !c.conta && (
+                <p className="text-[11px] text-ink-4 mt-0.5">antes do programa de pontos</p>
+              )}
             </div>
           </li>
         ))}
@@ -285,14 +304,36 @@ function LinhaExtrato({ m }: { m: MovimentoPontos }) {
   )
 }
 
-function Barra({ valor, total, escura }: { valor: number; total: number; escura?: boolean }) {
-  const pct = Math.max(0, Math.min(100, total > 0 ? (valor / total) * 100 : 0))
+const limite = (n: number) => Math.max(0, Math.min(100, n))
+/** Listras do trecho "a receber": deixa claro que esses pontos ainda nao entraram. */
+const LISTRAS = 'repeating-linear-gradient(135deg, transparent 0 3px, rgba(255,255,255,0.22) 3px 6px)'
+
+/** Dourado = pontos que ela ja tem; cinza listrado = pontos a receber (compras em aberto). */
+function Barra({ valor, total, aReceber = 0, escura }: { valor: number; total: number; aReceber?: number; escura?: boolean }) {
+  const pct = limite(total > 0 ? (valor / total) * 100 : 0)
+  const pctReceber = limite(total > 0 ? ((valor + aReceber) / total) * 100 : 0) - pct
   return (
-    <div className={`mt-1.5 h-2 rounded-full overflow-hidden ${escura ? 'bg-white/15' : 'bg-surface-2'}`}
+    <div className={`mt-1.5 h-2 rounded-full overflow-hidden flex ${escura ? 'bg-white/15' : 'bg-surface-2'}`}
          role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(valor, total)}>
-      <div className={`h-full rounded-full transition-[width] duration-700 ${pct >= 100 ? 'bg-success-solid' : 'bg-gold'}`}
+      <div className={`h-full transition-[width] duration-700 ${pct >= 100 ? 'bg-success-solid' : 'bg-gold'}`}
            style={{ width: `${pct}%` }} />
+      {pctReceber > 0 && (
+        <div className={`h-full transition-[width] duration-700 ${escura ? 'bg-white/35' : 'bg-ink-4/60'}`}
+             style={{ width: `${pctReceber}%`, backgroundImage: LISTRAS }} />
+      )}
     </div>
+  )
+}
+
+function Legenda({ escura }: { escura?: boolean }) {
+  return (
+    <p className={`mt-1.5 flex items-center gap-3 text-[11px] ${escura ? 'text-orange-100/70' : 'text-ink-3'}`}>
+      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gold" /> seus pontos</span>
+      <span className="flex items-center gap-1">
+        <span className={`w-2 h-2 rounded-full ${escura ? 'bg-white/35' : 'bg-ink-4/60'}`} style={{ backgroundImage: LISTRAS }} />
+        a receber
+      </span>
+    </p>
   )
 }
 
