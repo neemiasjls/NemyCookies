@@ -28,9 +28,9 @@ no "a anotar" e na planilha a venda segue com o total cheio, embora o dinheiro r
 seja menor. Decidir se mostra o valor recebido ou uma linha de desconto. Ver fidelidade.md.
 - Atualizado: 2026-10-19
 
-### Escala dos pontos e página inicial a confirmar
-Escala de 1 ponto por real (cookie de R$ 18 = 200 pontos) e a página inicial seguir
-aberta para pedidos, com o login só como botão. Ver fidelidade.md.
+### Escala dos pontos e Pix na página da cliente a confirmar
+Escala de 1 ponto por real (cookie de R$ 18 = 200 pontos) e a chave Pix aparecer na
+página dela quando há valor a pagar. Ver fidelidade.md.
 - Atualizado: 2026-10-19
 
 ## Divergências

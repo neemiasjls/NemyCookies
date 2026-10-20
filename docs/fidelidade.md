@@ -17,6 +17,11 @@ ela vai direto para a página da fidelidade.
   `fidelidade_primeiro_acesso()`, tabela `fidelidade_convites`, `PrimeiroAcesso.tsx`
   (`/primeiro-acesso?c=CODIGO`), rota `tab/customers/:id/convite` da Edge Function `admin`.
   Código de 8 letras/números sem 0/O/1/I/L; só o último convite vale; senha mínima de 6.
+  O painel do convite abre dentro da caixinha da própria cliente, não no topo da lista.
+- Mensagem (formato do dono): "Agora a NemyCookies tem programa de pontos: a cada 1 real
+  você ganha 1 ponto, e os pontos podem ser trocados por cookies grátis." / "Acesse o site
+  e crie sua senha por este link:" + link / "O link vale por 7 dias. Seu login é o seu
+  número de telefone." Senha esquecida usa a mesma linha final.
 - Antes: as senhas eram geradas pelo dono (Nome + símbolo + dígitos); as 23 criadas
   nunca foram entregues e foram desativadas.
 - Fonte: dono · Status: confirmado · Atualizado: 2026-10-19
@@ -25,6 +30,13 @@ ela vai direto para a página da fidelidade.
 Quanto ela deve, cada compra em aberto (dia, cookies, valor, quanto já pagou) e a chave
 Pix para pagar. Mostra todo o fiado em aberto, inclusive o de antes do lançamento.
 - Onde: `fidelidade_painel()` (`devendo`, `em_aberto`, `pix` de `app_settings`), `Fidelidade.tsx`
+
+### Para a cliente nunca se escreve "fiado"
+Na página dela e nas mensagens que ela recebe, é "a pagar", "o que está em aberto" e
+"pagamento em dia". "Fiado" é só o jeito de falar do dono e do painel.
+- Por quê: elas pagam todo mês, no dia do pagamento, e algumas pagam antes.
+- Onde: `Fidelidade.tsx` (seção "A pagar"), mensagem do convite em `Clientes.tsx`
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-19
 - Fonte: dono (fiado) / código (Pix) · Status: confirmado / a confirmar · Atualizado: 2026-10-19
 
 ### A senha nunca fica guardada
@@ -37,9 +49,13 @@ derruba quem estava logado. A sessão da cliente é própria
   `fidelidade` (limite de tentativas: `login_bloqueado()` com usuário `fidelidade:<telefone>`)
 - Fonte: código · Status: inferido · Atualizado: 2026-10-19
 
-### A página inicial continua aberta para pedidos
-O login é um botão na página inicial; quem não tem conta segue pedindo pelo site.
-- Fonte: código · Status: a confirmar · Atualizado: 2026-10-19
+### A entrada do site é o login da cliente; o delivery fica escondido em /delivery
+Quem abre o site cai direto no login da área da cliente. O cardápio de pedidos saiu da
+raiz e ficou em `/delivery`, sem link no site; checkout e pagamento voltam para ele.
+`/entrar` redireciona para a raiz.
+- Por quê: o dono não usa mais o delivery pelo site.
+- Onde: `App.tsx` (rotas `/` = `Entrar.tsx`, `/delivery` = `Home.tsx`)
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-19
 
 ## Pontos
 

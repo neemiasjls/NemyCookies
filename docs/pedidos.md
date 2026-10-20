@@ -6,7 +6,7 @@
 Informações em caixinhas na paleta marrom: cookies assados na hora; entrega R$ 4,
 grátis a partir de R$ 50; retirada em horário a combinar; Pix, dinheiro e cartão
 (aproximação). Não prometer prazo ("pronto em 1 hora" foi retirado).
-- Onde: `frontend/src/pages/Home.tsx`
+- Onde: `frontend/src/pages/Home.tsx` (rota `/delivery`, sem link no site; ver fidelidade.md)
 - Fonte: dono · Status: confirmado · Atualizado: 2026-08-11
 
 ### A logo e o nome no topo voltam para a home
