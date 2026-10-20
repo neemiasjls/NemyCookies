@@ -7,6 +7,7 @@ import { OrderResponse, OrderStatus, Product } from '../../types'
 import OrderStatusBadge from '../../components/OrderStatusBadge'
 import Caderneta from './Caderneta'
 import Clientes from './Clientes'
+import Pontos from './Pontos'
 import Historico from './Historico'
 import PedidoManual from './PedidoManual'
 import Vendas from './Vendas'
@@ -15,7 +16,7 @@ import Compras from './Compras'
 import { useNavigate } from 'react-router-dom'
 import {
   RefreshCw, LogOut, Info, MapPin, FileText, QrCode, CreditCard, Banknote,
-  Truck, Store, Plus, Minus, ShoppingBag, Package, Wallet, History, Users, Inbox,
+  Truck, Store, Plus, Minus, ShoppingBag, Package, Wallet, History, Users, Inbox, Gift,
   TrendingUp, Calculator, ShoppingCart, Trash2, Pencil,
 } from 'lucide-react'
 import ThemeToggle from '../../components/ThemeToggle'
@@ -35,7 +36,7 @@ const STATUS_ACTIONS: Record<OrderStatus, { next: OrderStatus; label: string; co
 
 const brlAdmin = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
-type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes' | 'historico'
+type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes' | 'pontos' | 'historico'
   | 'vendas' | 'custos' | 'compras'
 
 /* Dois grupos: em cima o fiado e os clientes dele (o controle do dia a dia),
@@ -43,6 +44,7 @@ type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes' | 'historico'
 const ABAS: { id: Tab; label: string; Icon: typeof ShoppingBag; grupo: 1 | 2 }[] = [
   { id: 'caderneta', label: 'Fiado',     Icon: Wallet,       grupo: 1 },
   { id: 'clientes',  label: 'Clientes',  Icon: Users,        grupo: 1 },
+  { id: 'pontos',    label: 'Pontos',    Icon: Gift,         grupo: 1 },
   { id: 'orders',    label: 'Pedidos',   Icon: ShoppingBag,  grupo: 2 },
   { id: 'stock',     label: 'Estoque',   Icon: Package,      grupo: 2 },
   { id: 'vendas',    label: 'Vendas',    Icon: TrendingUp,   grupo: 2 },
@@ -272,6 +274,9 @@ Isso apaga de vez, nao da para desfazer.`)) return
 
         {/* ── ABA CLIENTES ── */}
         {tab === 'clientes' && <Clientes />}
+
+        {/* ── ABA PONTOS (fidelidade) ── */}
+        {tab === 'pontos' && <Pontos products={products} />}
 
         {/* ── ABA HISTORICO ── */}
         {tab === 'historico' && <Historico />}
