@@ -64,16 +64,46 @@ export default function Clientes() {
 
   const linkConvite = (v: ConviteCliente) => `${window.location.origin}/primeiro-acesso?c=${v.codigo}`
 
+  /** Texto do convite no formato definido pelo dono (docs/fidelidade.md). */
   const textoConvite = (v: ConviteCliente) => {
-    const c = customers.find((x) => x.id === v.customerId)
-    const jaTinha = fidelidade?.clientes.get(v.customerId)?.temAcesso
-    return `Oii ${c?.nickname || v.nome.split(' ')[0]}! 🍪 ` +
-      (jaTinha
-        ? `Aqui está o link para criar uma senha nova na sua área de pontos da NemyCookies:\n\n`
-        : `Agora a NemyCookies tem programa de pontos: cada R$ 1 em cookies vira 1 ponto, e os pontos viram cookie grátis. ` +
-          `Lá você também vê seu fiado.\n\nCrie sua senha por este link:\n`) +
-      `${linkConvite(v)}\n\nO link vale por 7 dias. Seu login é este número de telefone.`
+    const fim = `\n${linkConvite(v)}\n\nO link vale por 7 dias. Seu login é o seu número de telefone.`
+    return fidelidade?.clientes.get(v.customerId)?.temAcesso
+      ? `Para criar uma senha nova na sua área de pontos da NemyCookies, acesse este link:${fim}`
+      : `Agora a NemyCookies tem programa de pontos: a cada 1 real você ganha 1 ponto, ` +
+        `e os pontos podem ser trocados por cookies grátis.\n\n` +
+        `Acesse o site e crie sua senha por este link:${fim}`
   }
+
+  /** Painel do convite recem-gerado, dentro da caixinha da propria cliente. */
+  const painelConvite = (v: ConviteCliente) => (
+    <div onClick={(e) => e.stopPropagation()}
+      className="mx-4 mb-3 rounded-xl bg-brand-soft border border-brand-line px-3 py-2.5 animate-fade-up">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 text-sm text-ink">
+          <p className="font-semibold flex items-center gap-1.5"><Send size={14} className="text-brand" /> Convite pronto</p>
+          <p className="mt-1 text-ink-2">Código: <b className="text-ink font-mono tracking-widest select-all">{v.codigo}</b></p>
+          <p className="text-[11px] text-ink-3 mt-1">
+            Vale até {new Date(v.expiraEm).toLocaleDateString('pt-BR')}. Ela abre o link, confirma o telefone e cria a senha.
+          </p>
+        </div>
+        <button onClick={() => setConvite(null)} title="Fechar"
+          className="w-7 h-7 rounded-full text-ink-3 hover:bg-surface flex items-center justify-center flex-shrink-0">
+          <X size={14} />
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2 mt-2.5">
+        <a href={`https://wa.me/${v.telefone}?text=${encodeURIComponent(textoConvite(v))}`}
+          target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs font-semibold text-success bg-success-bg border border-success-line px-3 py-1.5 rounded-lg">
+          <WhatsAppIcon size={13} /> Mandar no WhatsApp
+        </a>
+        <button onClick={() => copiarConvite(v)}
+          className="flex items-center gap-1.5 text-xs font-semibold text-brand bg-surface border border-brand-line px-3 py-1.5 rounded-lg">
+          {copiado ? <Check size={13} strokeWidth={3} /> : <Copy size={13} />} {copiado ? 'Copiado' : 'Copiar mensagem'}
+        </button>
+      </div>
+    </div>
+  )
 
   const copiarConvite = async (v: ConviteCliente) => {
     try { await navigator.clipboard.writeText(textoConvite(v)); setCopiado(true) }
@@ -233,35 +263,6 @@ export default function Clientes() {
           </div>
         </div>
 
-        {convite && (
-          <div className="bg-brand-soft border-b border-brand-line px-4 py-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 text-sm text-ink">
-                <p className="font-semibold flex items-center gap-1.5"><Send size={14} className="text-brand" /> Convite de {convite.nome}</p>
-                <p className="mt-1 text-ink-2">Código: <b className="text-ink font-mono tracking-widest select-all">{convite.codigo}</b></p>
-                <p className="text-[11px] text-ink-3 mt-1">
-                  Vale até {new Date(convite.expiraEm).toLocaleDateString('pt-BR')}. Ela abre o link, confirma o telefone e cria a senha.
-                </p>
-              </div>
-              <button onClick={() => setConvite(null)} title="Fechar"
-                className="w-7 h-7 rounded-full text-ink-3 hover:bg-surface flex items-center justify-center flex-shrink-0">
-                <X size={14} />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2.5">
-              <a href={`https://wa.me/${convite.telefone}?text=${encodeURIComponent(textoConvite(convite))}`}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-semibold text-success bg-success-bg border border-success-line px-3 py-1.5 rounded-lg">
-                <WhatsAppIcon size={13} /> Mandar no WhatsApp
-              </a>
-              <button onClick={() => copiarConvite(convite)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-brand bg-surface border border-brand-line px-3 py-1.5 rounded-lg">
-                {copiado ? <Check size={13} strokeWidth={3} /> : <Copy size={13} />} {copiado ? 'Copiado' : 'Copiar mensagem'}
-              </button>
-            </div>
-          </div>
-        )}
-
         {juntarDe !== null && (
           <div className="bg-info-bg border-b border-info-line px-4 py-2.5 flex items-center justify-between gap-2 flex-wrap">
             <p className="text-xs text-info">
@@ -284,7 +285,8 @@ export default function Clientes() {
         ) : (
           <div className="divide-y divide-line-soft">
             {filtrados.map((c) => (
-              <div key={c.id}
+              <div key={c.id}>
+              <div
                 onClick={() => { if (juntarDe !== null && juntarDe !== c.id) juntar(c) }}
                 className={`flex items-center justify-between gap-2 px-4 py-2.5 ${
                   juntarDe !== null && juntarDe !== c.id ? 'cursor-pointer hover:bg-info-bg' : ''
@@ -357,6 +359,8 @@ export default function Clientes() {
                     <Trash2 size={13} />
                   </button>
                 </div>
+              </div>
+              {convite?.customerId === c.id && painelConvite(convite)}
               </div>
             ))}
           </div>
