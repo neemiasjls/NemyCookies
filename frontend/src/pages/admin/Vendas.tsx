@@ -18,6 +18,9 @@ import {
 } from 'lucide-react'
 
 const brl = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
+// a view junta o estabelecimento ao nome (para a planilha); na tela o selo ja mostra
+const semLugar = (nome: string, lugar?: string | null) =>
+  lugar && nome.endsWith(` (${lugar.trim()})`) ? nome.slice(0, -(lugar.trim().length + 3)) : nome
 const dec = (v: number) => String(v).replace('.', ',')
 
 const paraNumero = (s: string) => Number(s.replace(',', '.')) || 0
@@ -327,7 +330,7 @@ export default function Vendas({ products, onEstoqueMudou }: {
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-ink truncate flex items-center gap-1.5">
                   {v.origin === 'fiado' && <SeloEstabelecimento nome={v.estabelecimento} />}
-                  <span className="truncate">{v.customerName}</span>
+                  <span className="truncate">{semLugar(v.customerName, v.estabelecimento)}</span>
                   {v.kind !== 'venda' && (
                     <span className="flex-shrink-0 text-[10px] font-semibold text-warn bg-warn-bg border border-warn-line px-1.5 rounded-full">
                       {v.kind === 'brinde' ? 'brinde' : 'consumo'}
@@ -498,7 +501,7 @@ export default function Vendas({ products, onEstoqueMudou }: {
                       <ChevronRight size={13}
                         className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-info' : ''}`} />
                       <span className="text-sm text-ink truncate group-hover:text-info transition-colors">
-                        {g.nome}
+                        {semLugar(g.nome, g.estabelecimento)}
                       </span>
                       <span className="text-[11px] text-ink-3 flex-shrink-0">
                         ({g.itens.length}x{g.taxas > 0 ? `, ${brl(g.taxas)} de entrega` : ''})
@@ -802,7 +805,7 @@ export default function Vendas({ products, onEstoqueMudou }: {
                     className={`flex-shrink-0 text-ink-3 transition-transform duration-200 ${aberto ? 'rotate-90 text-brand' : ''}`} />
                   {g.estabelecimento && <SeloEstabelecimento nome={g.estabelecimento} />}
                   <span className="text-sm text-ink truncate flex-1 min-w-0 group-hover:text-brand transition-colors">
-                    {g.nome}
+                    {semLugar(g.nome, g.estabelecimento)}
                   </span>
                   <span className="text-xs text-ink-2 flex-shrink-0 tabular-nums">
                     {g.itens.length}x ·{' '}
