@@ -156,3 +156,8 @@ Cliente de fiado do principal sai como `cookie <nome>`; dos outros estabelecimen
 `cookie <nome> (<estabelecimento>)`.
 - Onde: `fiado_nome_planilha()` na view `sales_all` — ver fiado.md
 - Fonte: dono · Status: confirmado · Atualizado: 2026-09-30
+
+### Na tela de Vendas o nome sai sem o estabelecimento entre parênteses
+O selo do estabelecimento ao lado já identifica; o `(Estabelecimento)` só vai para a planilha.
+- Onde: `semLugar()` em `Vendas.tsx` (tira o sufixo que vem de `sales_all`)
+- Fonte: dono · Status: confirmado · Atualizado: 2026-10-27
