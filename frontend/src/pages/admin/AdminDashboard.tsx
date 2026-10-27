@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import {
   getAdminOrders, updateOrderStatus,
   getAdminProducts, updateProductStock, adjustProductStock, excluirPedido, editarPedido,
@@ -16,7 +16,7 @@ import Compras from './Compras'
 import { useNavigate } from 'react-router-dom'
 import {
   RefreshCw, LogOut, Info, MapPin, FileText, QrCode, CreditCard, Banknote,
-  Truck, Store, Plus, Minus, ShoppingBag, Package, Wallet, History, Users, Inbox, Gift,
+  Truck, Store, Plus, Minus, ShoppingBag, Package, Wallet, History, Users, Inbox, Gift, Tag,
   TrendingUp, Calculator, ShoppingCart, Trash2, Pencil,
 } from 'lucide-react'
 import ThemeToggle from '../../components/ThemeToggle'
@@ -34,10 +34,13 @@ const STATUS_ACTIONS: Record<OrderStatus, { next: OrderStatus; label: string; co
   CANCELLED: [],
 }
 
+// a geracao de PDF (pdf-lib) so carrega quando a aba Etiquetas abre
+const Etiquetas = lazy(() => import('./Etiquetas'))
+
 const brlAdmin = (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}`
 
 type Tab = 'orders' | 'stock' | 'caderneta' | 'clientes' | 'pontos' | 'historico'
-  | 'vendas' | 'custos' | 'compras'
+  | 'vendas' | 'custos' | 'compras' | 'etiquetas'
 
 /* Dois grupos: em cima o fiado e os clientes dele (o controle do dia a dia),
    embaixo o resto do negocio. Os estabelecimentos de fiado vem do banco. */
@@ -50,6 +53,7 @@ const ABAS: { id: Tab; label: string; Icon: typeof ShoppingBag; grupo: 1 | 2 }[]
   { id: 'vendas',    label: 'Vendas',    Icon: TrendingUp,   grupo: 2 },
   { id: 'custos',    label: 'Precificação', Icon: Calculator, grupo: 2 },
   { id: 'compras',   label: 'Compras/Gastos', Icon: ShoppingCart, grupo: 2 },
+  { id: 'etiquetas', label: 'Etiquetas', Icon: Tag,          grupo: 2 },
   { id: 'historico', label: 'Histórico', Icon: History,      grupo: 2 },
 ]
 type FilterStatus = 'ALL' | OrderStatus
@@ -285,6 +289,7 @@ Isso apaga de vez, nao da para desfazer.`)) return
         {tab === 'vendas'  && <Vendas products={products} onEstoqueMudou={recarregarProdutos} />}
         {tab === 'custos'  && <Custos />}
         {tab === 'compras' && <Compras />}
+        {tab === 'etiquetas' && <Suspense fallback={<div className="py-10 text-center text-sm text-ink-3">Carregando…</div>}><Etiquetas /></Suspense>}
 
         {/* ── ABA PEDIDOS ── */}
         {tab === 'orders' && (

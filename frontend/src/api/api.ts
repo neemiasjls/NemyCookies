@@ -599,3 +599,11 @@ export const anotarTodasAsVendas = () =>
 
 export const marcarAnotada = (origem: OrigemVenda, id: number, annotated: boolean) =>
   patch(`${PLAN}/a-anotar/${origem}/${id}`, { annotated })
+
+/* ---------- Etiquetas de sabor (o PDF e montado no navegador, ver etiquetas.ts) ---------- */
+export type Etiqueta = { id: number; nome: string }
+export const getEtiquetas = () => requestAdmin<Etiqueta[]>(`${FN}/admin/etiquetas`)
+export const criarEtiqueta = (nome: string) =>
+  requestAdmin<Etiqueta>(`${FN}/admin/etiquetas`, { method: 'POST', body: JSON.stringify({ nome }) })
+export const excluirEtiqueta = (id: number) =>
+  requestAdmin<Etiqueta>(`${FN}/admin/etiquetas/${id}`, { method: 'DELETE' })
